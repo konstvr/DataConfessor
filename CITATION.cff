@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+title: "DataConfessor"
+message: "If you use this software, please cite the paper below."
+type: software
+abstract: >-
+  A pre-training privacy screen for medical datasets. Ranks patients by atypicality
+  using four throwaway proxy models and flags those most likely to be exposed by
+  membership inference, before a production model is trained.
+license: MIT
+authors:
+  - family-names: Vrettos
+    given-names: Konstantinos
+  - family-names: Klontzas
+    given-names: "Michail E."
+preferred-citation:
+  type: article
+  title: "Predicting and mitigating privacy risks in medical AI"
+  authors:
+    - family-names: Vrettos
+      given-names: Konstantinos
+    - family-names: Tzanis
+      given-names: Eleftherios
+    - family-names: Kondylakis
+      given-names: Haridimos
+    - family-names: Vassalou
+      given-names: "Evangelia E."
+    - family-names: Doo
+      given-names: "Florence X."
+    - family-names: Klontzas
+      given-names: "Michail E."
