@@ -61,5 +61,8 @@ good one by eye.
 
 ## Reproducibility
 
-Same manifest, same flags, same `--seed` gives the same ranking. Repeated runs with
-different seeds agreed to within 1.8 percentage points of recall in the source study.
+Same manifest, same settings and the same seed give the same ranking to within about one
+patient in four hundred on a GPU — cuDNN picks kernels non-deterministically, so the flags
+are reproducible, not bit-exact (measured: 410 of 411 flagged patients identical across two
+runs). Runs with different seeds agreed to within 1.8 percentage points of recall in the
+source study.

@@ -20,12 +20,15 @@ dataconfessor screen manifest.csv --patients flagged.csv --report report.html
 
 ```
 screened 2,056 patients / 33,126 records
-  4 proxy models x 1 epoch(s) of resnet18 (ImageNet init) on cuda, 7.1 minutes, 0.0074 kWh
+  4 proxy models x 1 epoch(s) of resnet18 (ImageNet init) on cuda, 16.5 minutes, 0.0191 kWh
   flagged 411 patients (20%)
-  self-consistency 0.812 (floor 0.7): the ranking reproduces across independent proxy
+  self-consistency 0.808 (floor 0.7): the ranking reproduces across independent proxy
   halves. Necessary for the flags to mean anything -- it does NOT predict recall.
   NOT a leakage measurement. Unflagged does not mean safe.
 ```
+
+<sup>Real output: ISIC-2020, one Quadro RTX 5000. All 411 flagged patients were melanoma
+patients, and they held 561 of the 584 melanoma images in the archive.</sup>
 
 ## What it is
 
@@ -54,13 +57,22 @@ and 37–1,200 times less energy than the audit it replaces.
 
 ```bash
 python examples/make_synthetic.py --out ./synth      # a cohort with a planted atypical tail
-dataconfessor screen ./synth/manifest.csv --epochs 10 --patients ./synth/flagged.csv \
+dataconfessor screen ./synth/manifest.csv --patients ./synth/flagged.csv \
     --report ./synth/report.html
 ```
 
-Then compare `synth/flagged.csv` with `synth/atypical_truth.txt`. Run it again with
-`--epochs 1` to watch the self-consistency gate refuse to produce flags from proxies that
-have not learned anything.
+On this toy cohort the default one-epoch proxies fail the self-consistency gate, so the tool
+refuses to stand behind the flags and tells you to train longer. Do what it says:
+
+```bash
+dataconfessor screen ./synth/manifest.csv --epochs 3 --patients ./synth/flagged.csv \
+    --report ./synth/report.html
+```
+
+That passes (self-consistency 0.78), and `synth/flagged.csv` then holds 70% of the patients
+listed in `synth/atypical_truth.txt` — the tail the generator planted, against the 20%
+random flagging would give. Real datasets do not come with a truth file, which is the whole
+reason the gate exists.
 
 ## The input: one CSV
 

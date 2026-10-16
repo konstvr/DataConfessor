@@ -119,10 +119,11 @@ class RecordSet:
         if not self.cache_path.exists():
             self._build(progress)
         self.data = np.load(self.cache_path, mmap_mode="r")
-        # Training reads random batches, which on a memory-mapped file is random disk I/O --
-        # it dominated a screen of 33,000 images, costing more than the GPU work it fed. If
-        # the whole cache fits in the budget, read it once, sequentially, and never touch the
-        # disk again. Above the budget it stays mapped and the run is slower but bounded.
+        # Training reads random batches, which on a memory-mapped file is random disk I/O.
+        # Measured on a 4.6 GiB dermoscopy cache it cost about 15% of the run; on a slower or
+        # busier disk it costs much more. If the whole cache fits in the budget, read it once,
+        # sequentially, and never touch the disk again. Above the budget it stays mapped and
+        # the run is slower but bounded.
         if self.data.nbytes <= _ram_budget():
             progress(f"  loading {self.data.nbytes / 2**30:.1f} GiB of records into memory")
             self.data = np.ascontiguousarray(self.data)

@@ -21,6 +21,17 @@ models, 1 epoch, ResNet-18, 20% flag rate), on one Quadro RTX 5000.
 Flag agreement with the research pipeline's own screen of the same cohort: **398 of 411
 patients (96.8%)**, across a different implementation and a different input resolution.
 
+Run-to-run: two runs of this package with identical settings and the same seed flagged
+**410 of the same 411 patients** and scored self-consistency 0.808 and 0.788. The residual
+difference is cuDNN's non-deterministic kernel selection, not sampling — the screen is
+reproducible to about one patient in four hundred, not bit-exact.
+
+Cost on this hardware: 16.5 minutes and 0.019 kWh for the first run, 15.5 minutes and
+0.019 kWh once the record cache was held in memory, excluding the one-off 6 minutes spent
+decoding 33,126 JPEGs. The study reports 7.4 GPU-minutes and 0.0074 kWh for its own
+implementation of the same screen on the same data, so budget roughly twice that for this
+package on a comparable card.
+
 (The research figures come from the study's screen runs; the melanoma-image denominators
 differ because the study's pool excludes planted control records.)
 
@@ -30,10 +41,10 @@ differ because the study's pool excludes planted control records.)
 records which patients sit in its illegible tail. The screen is given only the images and
 the labels.
 
-- default one-epoch proxies: self-consistency 0.18 → **the gate refuses the flags**, which
-  is the behaviour the gate exists for;
-- `--epochs 3`: self-consistency 0.76–0.83, and the flags contain **73–87%** of the planted
-  tail (random flagging would give 20%).
+- default one-epoch proxies: self-consistency 0.10–0.18 → **the gate refuses the flags**,
+  which is what it exists for (recall there is 55%, and the tool has no way to know that);
+- `--epochs 3`: self-consistency 0.76–0.83, and the flags hold **70–87%** of the planted
+  tail across three seeds, against the 20% random flagging would give.
 
 This runs on a CPU in under a minute and is part of the test suite.
 
