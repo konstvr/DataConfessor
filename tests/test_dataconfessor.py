@@ -136,3 +136,16 @@ def test_multilabel_manifest_runs_end_to_end(cohort, tmp_path):
     result = screen(man, epochs=1, device="cpu", progress=lambda _: None)
     assert np.isfinite(result.patient_atypicality).all()
     assert result.n_flagged == round(0.2 * result.n_patients)
+
+
+def test_packaged_skill_matches_the_repository_skill():
+    """The wheel carries its own copy of SKILL.md, because `pip install` has no repo to
+    read it from and the assistant mode is only as good as the instructions it sends.
+    Two copies drift, so the drift is a test failure rather than a surprise."""
+    root = Path(__file__).resolve().parents[1]
+    packaged = root / "src" / "dataconfessor" / "web" / "SKILL.md"
+    source = root / "skills" / "dataconfessor" / "SKILL.md"
+    assert packaged.read_text(encoding="utf-8") == source.read_text(encoding="utf-8"), (
+        "src/dataconfessor/web/SKILL.md is out of date: copy skills/dataconfessor/SKILL.md "
+        "over it."
+    )

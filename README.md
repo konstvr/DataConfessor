@@ -152,6 +152,9 @@ Other ways in, for other tools:
 | claude.ai or the API | zip `skills/dataconfessor/` and upload it as an Agent Skill |
 | any other agent | point it at `skills/dataconfessor/SKILL.md` — it is plain Markdown |
 
+The pip package carries its own copy of the skill, so `dataconfessor ui` can hand it to
+a model with no checkout present.
+
 The skill tells the assistant how to map an unfamiliar dataset onto the manifest, how to
 read the gate, how to escalate when it fails, and — importantly — not to open the flagged
 cohort or the records themselves. An open 31B model followed it end to end with no
