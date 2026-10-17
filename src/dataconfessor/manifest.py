@@ -74,8 +74,17 @@ def _read_rows(path: Path) -> list[dict[str, str]]:
     return rows
 
 
-def load(manifest_path: str | Path, *, no_patient_id: bool = False) -> Manifest:
-    """Read and validate a manifest. Raises on anything that would invalidate the screen."""
+def load(
+    manifest_path: str | Path,
+    *,
+    no_patient_id: bool = False,
+    kind: str | None = None,
+) -> Manifest:
+    """Read and validate a manifest. Raises on anything that would invalidate the screen.
+
+    `kind` ("image" or "signal") overrides the guess made from file suffixes. It is what a
+    dataset read through a custom loader needs, since its files can be named anything.
+    """
     mpath = Path(manifest_path).expanduser().resolve()
     root = mpath.parent
     rows = _read_rows(mpath)
@@ -90,15 +99,18 @@ def load(manifest_path: str | Path, *, no_patient_id: bool = False) -> Manifest:
         raw_patients.append((row["patient_id"] or "").strip())
 
     suffixes = {p.suffix.lower() for p in paths}
-    if suffixes <= IMAGE_SUFFIXES:
+    if kind is not None:
+        if kind not in ("image", "signal"):
+            raise ValueError(f"kind must be 'image' or 'signal', got {kind!r}")
+    elif suffixes <= IMAGE_SUFFIXES:
         kind = "image"
     elif suffixes <= ARRAY_SUFFIXES:
         kind = "signal"
     else:
         raise ValueError(
-            f"mixed or unsupported file types {sorted(suffixes)}. Use images "
-            f"({sorted(IMAGE_SUFFIXES)}) or .npy arrays, not both. Anything else needs a "
-            f"custom loader -- see references/manifest.md."
+            f"mixed or unsupported file types {sorted(suffixes)}. Natively this tool reads "
+            f"images ({sorted(IMAGE_SUFFIXES)}) or .npy arrays, not both. Anything else "
+            f"needs --loader together with --kind image|signal -- see references/manifest.md."
         )
 
     step = max(1, len(paths) // 2000)
@@ -269,8 +281,11 @@ def build(
             raise ValueError(f"{labels_csv} has no rows")
         cols = list(table[0])
         image_col = image_col or _guess(cols, ("image", "file", "name", "id", "path"))
-        label_col = label_col or _guess(cols, ("target", "label", "class", "diagnosis", "y"))
-        patient_col = patient_col or _guess(cols, ("patient", "subject", "person", "case"))
+        label_col = label_col or _guess(cols, ("target", "label", "class", "diagnos",
+                                         "malign", "benign", "finding", "outcome",
+                                         "grade", "severity"))
+        patient_col = patient_col or _guess(cols, ("patient", "mrn", "subject", "person",
+                                             "case", "participant"))
         for flag, name in (("--image-col", image_col), ("--label-col", label_col)):
             if name is None:
                 raise ValueError(f"could not guess {flag} from columns {cols}; pass it")

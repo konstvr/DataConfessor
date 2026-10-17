@@ -40,5 +40,8 @@ Source = "https://github.com/ATI-Lab/DataConfessor"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+dataconfessor = ["web/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

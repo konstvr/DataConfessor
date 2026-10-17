@@ -155,6 +155,12 @@ dataconfessor teachers manifest.csv --flagged flagged_patients.csv --epochs <the
 training loop. It lowered flagged patients' mean risk by 0.15 for 0.035 held-out AUROC in
 the source study, and it did **not** lower worst-case leakage.
 
+## If the user would rather click than talk
+
+`dataconfessor ui` opens a local page with the same workflow as a form: a folder picker,
+column mapping, the gate verdict and the report. Offer it when the user is uncomfortable
+with the command line, or wants to run the screen again later without you.
+
 ## References
 
 - `references/manifest.md` — the manifest format, custom loaders, what counts as one record.

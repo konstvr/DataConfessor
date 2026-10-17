@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="dc-token" content="{{TOKEN}}">
+<title>DataConfessor</title>
+<link rel="stylesheet" href="/static/app.css">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="lamp" aria-hidden="true"></div>
+
+<header class="masthead">
+  <div class="mark">
+    <svg viewBox="0 0 40 40" class="mark-art" aria-hidden="true">
+      <path d="M4 35h9M8.5 35V22" class="s"/>
+      <path d="M8.5 22l2-9 7-5" class="s"/>
+      <path d="M14.5 6.5l6.5 4-4.5 6-6.5-4z" class="s f"/>
+      <path d="M19.5 16.5l4.5 5M22.5 13.5l5.5 5" class="beam"/>
+      <rect x="21" y="21" width="14" height="14" rx="1.2" class="s f"/>
+      <path d="M24 25.5h8M24 29h8M24 32h5" class="hair"/>
+    </svg>
+    <div>
+      <h1>DataConfessor</h1>
+      <p class="tagline">Who will this model memorise?</p>
+    </div>
+  </div>
+  <div class="masthead-meta">
+    <span class="chip" id="chip-device" title="compute the screen will use">checking…</span>
+    <span class="chip chip-quiet" id="chip-version">v…</span>
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch theme">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="4.2" class="s"/><path d="M10 1v2.4M10 16.6V19M19 10h-2.4M3.4 10H1M16.4 3.6l-1.7 1.7M5.3 14.7l-1.7 1.7M16.4 16.4l-1.7-1.7M5.3 5.3L3.6 3.6" class="s"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="shell">
+  <!-- ── left: how you drive it ─────────────────────────────────────────────── -->
+  <section class="column column-drive">
+    <nav class="tabs" role="tablist">
+      <button class="tab is-on" role="tab" data-mode="assistant" aria-selected="true">Ask an assistant</button>
+      <button class="tab" role="tab" data-mode="manual" aria-selected="false">Do it yourself</button>
+      <a class="tab-aside" href="#" id="open-help">How must my data look?</a>
+    </nav>
+
+    <!-- assistant -->
+    <div class="panel" id="panel-assistant" role="tabpanel">
+      <details class="provider" id="provider-box" open>
+        <summary>
+          <span>Model</span>
+          <span class="provider-summary" id="provider-summary">not configured</span>
+        </summary>
+        <div class="provider-grid">
+          <label>Provider
+            <select id="provider">
+              <option value="anthropic">Anthropic</option>
+              <option value="ollama">Ollama (local or cloud)</option>
+              <option value="openai">OpenAI-compatible</option>
+            </select>
+          </label>
+          <label>Model
+            <input id="model" spellcheck="false" placeholder="claude-sonnet-5-5">
+          </label>
+          <label>API key
+            <input id="apikey" type="password" spellcheck="false" placeholder="sk-…">
+          </label>
+          <label>Base URL <span class="hint">optional</span>
+            <input id="baseurl" spellcheck="false" placeholder="http://localhost:11434">
+          </label>
+        </div>
+        <p class="note">
+          The key stays in this browser tab and is sent only to the provider you picked, with
+          the request you asked for. It is never written to disk. For a dataset that may not
+          leave the building, point this at a local Ollama and nothing goes out at all.
+        </p>
+      </details>
+
+      <div class="transcript" id="transcript">
+        <div class="intro">
+          <p class="intro-lead">Tell it where the dataset is.</p>
+          <p>It will map your files onto a manifest, check the cohort, run the screen and read
+             the self-consistency gate — the same steps as the tab next door, done for you. It
+             is not allowed to open your records or the flagged-patient list.</p>
+          <div class="intro-seeds">
+            <button class="seed" type="button">My dataset is in D:\data\derm, labels are in metadata.csv</button>
+            <button class="seed" type="button">Screen /data/ptbxl and tell me whether the flags are usable</button>
+          </div>
+        </div>
+      </div>
+
+      <form class="composer" id="composer">
+        <textarea id="prompt" rows="2" placeholder="Where is the dataset?" spellcheck="false"></textarea>
+        <button class="btn btn-primary" id="send" type="submit">Send</button>
+        <button class="btn btn-ghost is-hidden" id="halt" type="button">Stop</button>
+      </form>
+    </div>
+
+    <!-- manual -->
+    <div class="panel is-hidden" id="panel-manual" role="tabpanel">
+      <ol class="steps">
+        <li class="step is-open" data-step="1">
+          <h2><span class="step-n">1</span> Point at the data</h2>
+          <div class="step-body">
+            <label>Folder of images or records
+              <span class="with-button">
+                <input id="data-dir" spellcheck="false" placeholder="D:\data\derm\images">
+                <button class="btn btn-quiet" type="button" data-browse="data-dir">Browse</button>
+              </span>
+            </label>
+            <label>Labels CSV <span class="hint">optional — without it, the folder name is the label</span>
+              <span class="with-button">
+                <input id="labels-csv" spellcheck="false" placeholder="D:\data\derm\metadata.csv">
+                <button class="btn btn-quiet" type="button" data-browse="labels-csv" data-files="1">Browse</button>
+              </span>
+            </label>
+            <div class="cols" id="cols">
+              <label>File name column<select id="col-image"><option value="">auto</option></select></label>
+              <label>Label column<select id="col-label"><option value="">auto</option></select></label>
+              <label>Patient column<select id="col-patient"><option value="">auto</option></select></label>
+            </div>
+            <p class="note" id="patient-warning"></p>
+            <button class="btn btn-primary" id="do-init" type="button">Build the manifest</button>
+          </div>
+        </li>
+
+        <li class="step" data-step="2">
+          <h2><span class="step-n">2</span> Check the cohort</h2>
+          <div class="step-body">
+            <p class="note">Free and instant. It counts patients and records, and warns about the
+               one thing nothing downstream can check: whether the patient column really groups
+               one person's records together.</p>
+            <div id="cohort" class="cohort"></div>
+            <button class="btn btn-primary" id="do-check" type="button">Check</button>
+          </div>
+        </li>
+
+        <li class="step" data-step="3">
+          <h2><span class="step-n">3</span> Screen</h2>
+          <div class="step-body">
+            <div class="knobs">
+              <label>Flag rate
+                <select id="flag"><option value="0.20" selected>20% — the calibrated point</option>
+                <option value="0.10">10%</option><option value="0.05">5%</option></select>
+              </label>
+              <label>Epochs per proxy<input id="epochs" type="number" min="1" max="50" value="1"></label>
+              <label>Proxy models<select id="models"><option>4</option><option>8</option><option>16</option></select></label>
+              <label>Device<select id="device"><option value="">auto</option><option value="cuda">cuda</option><option value="cpu">cpu</option></select></label>
+            </div>
+            <details class="advanced">
+              <summary>Records this tool cannot read by itself</summary>
+              <div class="provider-grid">
+                <label>Loader <span class="hint">file.py:function</span>
+                  <input id="loader" spellcheck="false" placeholder="loaders/ptbxl_loader.py:load"></label>
+                <label>Record kind
+                  <select id="kind"><option value="">from the file type</option>
+                  <option value="image">image</option><option value="signal">signal</option></select></label>
+              </div>
+            </details>
+            <button class="btn btn-primary" id="do-screen" type="button">Run the screen</button>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ── right: what came back ──────────────────────────────────────────────── -->
+  <aside class="column column-result">
+    <div class="result-head">
+      <h2>Run</h2>
+      <span class="chip chip-quiet" id="chip-workdir">—</span>
+    </div>
+
+    <div class="verdict" id="verdict" data-state="idle">
+      <p class="verdict-label" id="verdict-label">Nothing has run yet</p>
+      <p class="verdict-text" id="verdict-text">
+        The screen trains four throwaway models on complementary halves of your patients and
+        ranks everyone by how badly the models that never saw them predict them.
+      </p>
+    </div>
+
+    <div class="cohort-grid" id="grid-wrap">
+      <div class="grid" id="grid" aria-hidden="true"></div>
+      <p class="grid-legend">
+        <span class="key key-flag"></span><span id="grid-flagged">—</span>
+        <span class="key key-rest"></span><span id="grid-rest">—</span>
+      </p>
+    </div>
+
+    <dl class="stats is-hidden" id="stats"></dl>
+
+    <div class="artifacts is-hidden" id="artifacts"></div>
+
+    <section class="console">
+      <div class="console-head">
+        <span id="console-title">Console</span>
+        <button class="btn btn-quiet" id="clear-log" type="button">Clear</button>
+      </div>
+      <pre class="log" id="log" tabindex="0" data-empty="Commands and their output appear here."></pre>
+    </section>
+  </aside>
+</main>
+
+<footer class="footrule">
+  <p>A ranking, not a measurement. An unflagged patient is not certified safe — at this flag
+     rate the source study recovered 65–96% of the tail a full audit found.
+     <a href="#" id="open-help-2">What the tool needs from your data</a></p>
+</footer>
+
+<!-- ── dialogs ────────────────────────────────────────────────────────────── -->
+<dialog id="browser">
+  <form method="dialog" class="dialog-head">
+    <h3 id="browser-path">—</h3>
+    <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+  </form>
+  <div class="browser-list" id="browser-list"></div>
+  <div class="dialog-foot">
+    <button class="btn btn-quiet" id="browser-up" type="button">Up one level</button>
+    <button class="btn btn-primary" id="browser-pick" type="button">Use this folder</button>
+  </div>
+</dialog>
+
+<dialog id="help">
+  <form method="dialog" class="dialog-head">
+    <h3>What the tool needs from your data</h3>
+    <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+  </form>
+  <div class="prose">
+    <p>One CSV with three columns. <em>Build the manifest</em> writes it for you by joining a
+       folder of files to whatever labels CSV your dataset came with, matching on file name.</p>
+<pre><code>path,label,patient_id
+images/ISIC_0015719.jpg,0,IP_3075186
+images/ISIC_0052212.jpg,1,IP_3075186</code></pre>
+    <h4>path</h4>
+    <p>Relative to the manifest, or absolute. Images (<code>.png .jpg .tif …</code>) and
+       <code>.npy</code> arrays are read directly. Anything else — DICOM, NIfTI, WFDB — needs a
+       four-line loader and the record kind; there is an example in the repository.</p>
+    <h4>label</h4>
+    <p>The training label: a class index or a name. For multi-label tasks, the positive classes
+       separated by semicolons, like <code>cardiomegaly;effusion</code>.</p>
+    <h4>patient_id</h4>
+    <p>The identifier of the <em>person</em>. Every record of one person must carry the same
+       value, across studies and years. An accession number, a file name or a lesion id is not a
+       patient id. This is the one rule nothing downstream can check: a wrong key produces
+       numbers that look perfectly plausible and mean nothing.</p>
+    <h4>What counts as one record</h4>
+    <p>A patient's risk is the <em>maximum</em> over their records, so hundreds of slices per
+       patient saturate it and the ranking stops discriminating. For MRI or CT use one series per
+       record; three to twenty records per patient is the comfortable range.</p>
+    <h4>Without patient identifiers</h4>
+    <p>The screen still runs, per record rather than per patient — and it says so everywhere,
+       because a patient with several records is then not scored as one person.</p>
+  </div>
+</dialog>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

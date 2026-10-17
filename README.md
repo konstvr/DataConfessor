@@ -43,6 +43,24 @@ modalities — that flag rate recovered **65–96%** of the patients a full memb
 audit placed in the top-5% risk tail, 3.2–4.8 times random flagging, in 1.4–7.4 GPU-minutes
 and 37–1,200 times less energy than the audit it replaces.
 
+## Or run it in a browser
+
+```bash
+dataconfessor ui
+```
+
+<p align="center"><img src="assets/screenshot.png" alt="The DataConfessor interface: three
+steps on the left, the self-consistency verdict and the flagged share on the right" width="860"></p>
+
+One command opens a local page with two ways in: **ask an assistant** — your own model key,
+or a local Ollama so that nothing leaves the building — or **do it yourself**, three steps
+with a folder picker and no commands to type. Both end in the same place: the gate verdict,
+the flagged share of the cohort, and the report.
+
+The server binds `127.0.0.1`, holds a token the page must present, and allows only this
+tool's own commands. The page loads no fonts or scripts from the network, and the one output
+that identifies people — the flagged-cohort CSV — is deliberately not servable to it.
+
 ## What it is not
 
 - **Not a leakage measurement.** It produces a ranking and a flagged cohort, never a
@@ -105,6 +123,7 @@ loudly in the exit code either, so read the value.
 | `dataconfessor screen` | rank patients, flag the top 20%, write the report |
 | `dataconfessor teachers` | soft labels for the flagged records (self-distillation) |
 | `dataconfessor advise` | the measured mitigations, ranked for your recipe |
+| `dataconfessor ui` | all of the above in a browser, served from this machine only |
 
 Two outputs, deliberately separated: `--out` is aggregate-only JSON, safe to log, ticket or
 hand to an AI assistant; `--patients` is the flagged cohort, which identifies individuals by
@@ -113,20 +132,30 @@ three diagnostic panels and no identifiers.
 
 ## With an AI assistant
 
-The repo ships a skill, so an assistant can run the whole screen from a sentence:
+The repo is also a Claude Code plugin, so an assistant can run the whole screen from a
+sentence:
 
-```bash
-cp -r skills/dataconfessor ~/.claude/skills/          # Claude Code
+```
+/plugin marketplace add ATI-Lab/DataConfessor
+/plugin install dataconfessor@dataconfessor
 ```
 
 ```
 /dataconfessor my dataset is at /data/derm, labels are in metadata.csv
 ```
 
+Other ways in, for other tools:
+
+| | |
+|---|---|
+| any Claude Code project | `cp -r skills/dataconfessor ~/.claude/skills/` |
+| claude.ai or the API | zip `skills/dataconfessor/` and upload it as an Agent Skill |
+| any other agent | point it at `skills/dataconfessor/SKILL.md` — it is plain Markdown |
+
 The skill tells the assistant how to map an unfamiliar dataset onto the manifest, how to
 read the gate, how to escalate when it fails, and — importantly — not to open the flagged
-cohort or the records themselves. It works with any agent that can read a Markdown
-instruction file and run shell commands; see `skills/dataconfessor/SKILL.md`.
+cohort or the records themselves. An open 31B model followed it end to end with no
+violations; see `VALIDATION.md`.
 
 ## After the screen: protecting the flagged patients
 

@@ -1,0 +1,15 @@
+{
+  "name": "dataconfessor",
+  "description": "DataConfessor: a pre-training privacy screen for medical datasets",
+  "owner": {
+    "name": "ATI Lab, University of Crete"
+  },
+  "plugins": [
+    {
+      "name": "dataconfessor",
+      "description": "Screen a medical dataset for membership-inference risk before training, and recommend measured mitigations.",
+      "version": "0.1.0",
+      "source": "./"
+    }
+  ]
+}

@@ -38,6 +38,9 @@ def _add_data_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--loader", default=None,
                    help="path/to/file.py:function returning one record as an array, for "
                         "formats this tool does not read natively (DICOM, NIfTI, WFDB)")
+    p.add_argument("--kind", choices=["image", "signal"], default=None,
+                   help="what a record is, when --loader reads files this tool does not "
+                        "recognise by suffix (DICOM, WFDB, NIfTI)")
     p.add_argument("--no-patient-id", action="store_true",
                    help="treat every record as its own patient; results become per-record")
 
@@ -65,7 +68,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 def cmd_check(args: argparse.Namespace) -> int:
     from . import manifest as mf
 
-    man = mf.load(args.manifest, no_patient_id=args.no_patient_id)
+    man = mf.load(args.manifest, no_patient_id=args.no_patient_id, kind=args.kind)
     print(json.dumps(mf.summary(man), indent=2))
     print(f"\nNEXT: dataconfessor screen {args.manifest} --patients flagged_patients.csv "
           f"--report screen_report.html --out screen_summary.json")
@@ -78,7 +81,7 @@ def cmd_screen(args: argparse.Namespace) -> int:
     from . import manifest as mf, mitigate, report as rep
     from .screen import run as run_screen, write_summary
 
-    man = mf.load(args.manifest, no_patient_id=args.no_patient_id)
+    man = mf.load(args.manifest, no_patient_id=args.no_patient_id, kind=args.kind)
     for w in man.warnings:
         print(f"WARNING: {w}")
 
@@ -131,7 +134,7 @@ def cmd_screen(args: argparse.Namespace) -> int:
 def cmd_teachers(args: argparse.Namespace) -> int:
     from . import manifest as mf, mitigate
 
-    man = mf.load(args.manifest, no_patient_id=args.no_patient_id)
+    man = mf.load(args.manifest, no_patient_id=args.no_patient_id, kind=args.kind)
     flagged = mitigate.read_flagged(args.flagged)
     info = mitigate.teachers(
         man, flagged, epochs=args.epochs, arch=args.arch, size=args.size,
@@ -142,6 +145,12 @@ def cmd_teachers(args: argparse.Namespace) -> int:
           "true labels of the listed records, then re-measure utility. The source study saw "
           "-0.035 held-out AUROC for -0.15 mean risk on the flagged patients.")
     return 0
+
+
+def cmd_ui(args: argparse.Namespace) -> int:
+    from .ui import serve
+
+    return serve(workdir=args.workdir, port=args.port, open_browser=not args.no_browser)
 
 
 def cmd_advise(args: argparse.Namespace) -> int:
@@ -204,6 +213,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--arch", default=None)
     p.add_argument("--out", default="soft_labels.npz")
     p.set_defaults(func=cmd_teachers)
+
+    p = sub.add_parser("ui", help="open the browser interface (local only)")
+    p.add_argument("--workdir", default=None,
+                   help="where runs write their manifest, flags and report "
+                        "(default: the current directory)")
+    p.add_argument("--port", type=int, default=0, help="0 picks a free port")
+    p.add_argument("--no-browser", action="store_true", help="print the URL, do not open it")
+    p.set_defaults(func=cmd_ui)
 
     p = sub.add_parser("advise", help="the measured mitigations, ranked")
     p.add_argument("--weight-decay", type=float, default=None,

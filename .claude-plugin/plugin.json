@@ -1,0 +1,12 @@
+{
+  "name": "dataconfessor",
+  "description": "Screen a medical dataset for membership-inference risk before training: rank patients by atypicality with four throwaway proxy models, flag the top 20%, and recommend the mitigations the source study measured.",
+  "version": "0.1.0",
+  "author": {
+    "name": "ATI Lab, University of Crete"
+  },
+  "homepage": "https://github.com/ATI-Lab/DataConfessor",
+  "repository": "https://github.com/ATI-Lab/DataConfessor",
+  "license": "MIT",
+  "keywords": ["privacy", "membership-inference", "medical-imaging", "machine-learning", "audit"]
+}

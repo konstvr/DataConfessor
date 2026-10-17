@@ -35,7 +35,34 @@ package on a comparable card.
 (The research figures come from the study's screen runs; the melanoma-image denominators
 differ because the study's pool excludes planted control records.)
 
-## 2. It recovers a tail it was never told about
+## 2. It reproduces the study's recall on a second dataset and a second modality
+
+PTB-XL: 21,799 twelve-lead electrocardiograms from 18,869 patients, read straight from their
+WFDB files through `examples/loaders/ptbxl_loader.py` — a different modality, a different
+record format, labels built by rule rather than read from a column, and none of the study's
+planted control records. The flags were then scored against the **study's own top-5% tail**
+for that dataset's reference arm, the same endpoint the paper reports.
+
+| | study's screen | this package |
+|---|---|---|
+| patients / records | 18,869 / 21,799 | 18,869 / 21,799 |
+| flagged | 3,774 | 3,774 |
+| hits in the 943-patient tail | 610 | **616** |
+| recall | 0.6469 (CI 0.616–0.679) | **0.6532 (CI 0.623–0.684)** |
+| lift over random flagging | 3.23x | **3.27x** |
+| self-consistency | 0.847 | 0.740 |
+| cost | 1.43 GPU-min, 0.0015 kWh | 1.3 GPU-min, 0.0015 kWh |
+
+Rank agreement between the two screens' atypicality: Spearman 0.832. Flag overlap: 66.9%.
+That gap is the honest part of this result — **the two runs recover the same tail while
+disagreeing about a third of the 20% they flag**, because the cut falls in a crowded part of
+a continuous ranking. The tail is reproducible; the exact membership of the flagged cohort
+is not, and neither implementation can claim it is.
+
+(Reproduce it with `examples/ptbxl_manifest.py` and the loader; scoring against the tail
+needs the study's shadow-model dumps, which are not public.)
+
+## 3. It recovers a tail it was never told about
 
 `examples/make_synthetic.py` plants a continuum of legibility in a synthetic cohort and
 records which patients sit in its illegible tail. The screen is given only the images and
@@ -48,7 +75,7 @@ the labels.
 
 This runs on a CPU in under a minute and is part of the test suite.
 
-## 3. A small open-weight model can drive it
+## 4. A small open-weight model can drive it
 
 `examples/run_with_ollama.py` hands `SKILL.md` to an open model as a system prompt, lets it
 emit one shell command at a time and feeds back the output. With **gemma4:31b** on a dataset
@@ -72,11 +99,27 @@ the gate failed, and stopped at the first passing configuration. Recall against 
 tail: 73%. **Discipline violations: 0** — it never opened the flagged-cohort CSV or any
 record file, which the harness would have refused and logged.
 
+## 5. The browser interface does the same work
+
+`dataconfessor ui` was driven end to end with a real browser (Playwright against Chrome):
+folder and labels CSV chosen, columns guessed from the CSV header (`study_file` / `finding` /
+`mrn`), manifest built, cohort checked, screen run, gate read — self-consistency 0.814 on the
+synthetic cohort, flags written, report opened. The same page was driven again in assistant
+mode with **gemma4:31b** over Ollama Cloud: the model listed the folder, read the CSV header
+only, ran `dataconfessor init`, noticed the tool's warning that no patient column had been
+used, and stopped to ask whether `mrn` was the patient identifier instead of screening
+per record. No page errors, and no attempt to open a record or the flagged cohort.
+
+Two defects that test found, both fixed: the page sent the skill to the model without the
+reply protocol (the model answered with nothing at all, silently), and a failed step left no
+visible error. The protocol now lives next to the executor that enforces it.
+
 ## Reproducing these
 
 ```bash
-pytest                                              # 2 and the unit checks
+pytest                                              # 3 and the unit checks
 python examples/make_synthetic.py --out ./synth     # 2, by hand
 # 1 needs the ISIC-2020 archive; see examples/isic2020.md
-# 3 needs an Ollama API key: python examples/run_with_ollama.py --data ./synth
+# 2 needs PTB-XL;      see examples/ptbxl_manifest.py
+# 4 needs an Ollama API key: python examples/run_with_ollama.py --data ./synth
 ```
