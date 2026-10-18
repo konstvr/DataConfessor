@@ -76,17 +76,32 @@ def test_screen_recovers_a_planted_atypical_tail(cohort):
 
 
 def test_under_trained_proxies_fail_the_self_consistency_gate(cohort):
-    """The gate's whole job: proxies too weak to rank patients must not produce flags.
+    """The gate's whole job: proxies too weak to rank patients must say so.
 
-    One epoch on this cohort is not enough to learn the rule, so the two halves of the
-    proxy set disagree and `passed` is False -- which is what sends a user up the
-    escalation ladder instead of acting on noise.
+    One epoch is not enough to learn the rule on this cohort. With the fail-safe disabled
+    (`max_epochs` equal to the starting epochs) the check fails, the flags are still
+    delivered, and both the verdict and the printed summary say they are the weaker kind.
     """
     out, _ = cohort
     man = load_manifest(out / "manifest.csv")
-    result = screen(man, epochs=1, device="cpu", progress=lambda _: None)
-    assert not result.passed
-    assert "Do not act on them" in result.summary_text()
+    result = screen(man, epochs=1, max_epochs=1, device="cpu", progress=lambda _: None)
+
+    assert not result.passed and result.verdict == "below_floor"
+    assert len(result.attempts) == 1
+    assert result.n_flagged > 0
+    assert "LESS RELIABLE" in result.summary_text()
+
+
+def test_failsafe_rescues_the_synthetic_cohort(cohort):
+    """End to end, with real proxies: one epoch fails here and the fail-safe fixes it."""
+    out, info = cohort
+    man = load_manifest(out / "manifest.csv")
+    result = screen(man, device="cpu", progress=lambda _: None)
+
+    assert result.passed, "the ladder should reach a passing budget on this cohort"
+    assert result.verdict == "passed_after_retry" and result.epochs > 1
+    recall = len(set(result.flagged_names()) & set(info["atypical"])) / len(info["atypical"])
+    assert recall > 0.5, f"recall {recall:.2f} barely beats random flagging (0.20)"
 
 
 def test_safe_summary_contains_no_patient_level_data(cohort):
@@ -149,3 +164,102 @@ def test_packaged_skill_matches_the_repository_skill():
         "src/dataconfessor/web/SKILL.md is out of date: copy skills/dataconfessor/SKILL.md "
         "over it."
     )
+
+
+# --- the self-consistency fail-safe -------------------------------------------------------
+#
+# These patch the two expensive parts (training a proxy, and the split-half correlation it
+# feeds) so the test is about the escalation logic and nothing else: which epoch budgets get
+# tried, which attempt's flags come back, and what the verdict says.
+
+
+@pytest.fixture
+def fake_proxies(monkeypatch):
+    """Make `run()` cheap, and make its self-consistency follow a script."""
+    # `from dataconfessor import screen` would give the package-level alias for screen.run,
+    # so the module is taken from the import system instead.
+    from importlib import import_module
+
+    sc = import_module("dataconfessor.screen")
+
+    def fake_train(records, in_idx, *, epochs, seed, **_):
+        rng = np.random.default_rng(seed + epochs)
+        return rng.normal(size=len(records))
+
+    def install(sequence):
+        values = list(sequence)
+        seen = []
+
+        def fake_consistency(scores, membership, codes, n_models):
+            seen.append(values[len(seen)] if len(seen) < len(values) else values[-1])
+            return seen[-1]
+
+        monkeypatch.setattr(sc, "_train_one", fake_train)
+        monkeypatch.setattr(sc, "_self_consistency", fake_consistency)
+        return seen
+
+    return install
+
+
+def test_escalation_schedule():
+    from dataconfessor.screen import escalation
+
+    assert escalation(1, 5) == [1, 2, 5]
+    assert escalation(3, 5) == [3, 5]
+    assert escalation(1, 1) == [1]          # retrying turned off
+    assert escalation(2, 12) == [2, 5, 12]  # a raised ceiling is a rung, not only a cap
+    assert escalation(7, 5) == [7]          # a start above the ceiling still runs once
+
+
+def test_failsafe_retries_until_the_check_passes(cohort, fake_proxies):
+    out, _ = cohort
+    man = load_manifest(out / "manifest.csv")
+    seen = fake_proxies([0.65, 0.68, 0.85])
+
+    result = screen(man, device="cpu", progress=lambda _: None)
+
+    assert seen == [0.65, 0.68, 0.85], "it should stop at the first passing attempt"
+    assert [a.epochs for a in result.attempts] == [1, 2, 5]
+    assert result.epochs == 5, "the flags must come from the attempt that passed"
+    assert result.self_consistency == 0.85
+    assert result.passed and result.verdict == "passed_after_retry"
+    assert result.gpu_seconds == pytest.approx(sum(a.gpu_seconds for a in result.attempts))
+
+
+def test_failsafe_delivers_marked_flags_when_it_never_passes(cohort, fake_proxies, tmp_path):
+    out, _ = cohort
+    man = load_manifest(out / "manifest.csv")
+    fake_proxies([0.41, 0.52, 0.60])
+
+    result = screen(man, device="cpu", progress=lambda _: None)
+
+    assert not result.passed
+    assert result.verdict == "below_floor"
+    assert result.epochs == 5, "the flags come from the most-trained attempt"
+    assert result.n_flagged == round(0.2 * result.n_patients), "flags are still delivered"
+
+    summary = result.safe_summary("flagged.csv")
+    assert summary["verdict"] == "below_floor"
+    assert summary["self_consistency_floor"] == 0.70
+    assert summary["epochs_used"] == 5
+    assert [a["self_consistency"] for a in summary["attempts"]] == [0.41, 0.52, 0.60]
+
+    # The warning travels with the rows, so the file cannot be separated from its verdict.
+    import csv
+
+    path = tmp_path / "flagged.csv"
+    result.write_patients(path)
+    rows = list(csv.DictReader(open(path, encoding="utf-8")))
+    assert {r["screen_verdict"] for r in rows} == {"below_floor"}
+    assert len(rows) == result.n_patients
+
+
+def test_one_attempt_when_the_first_check_passes(cohort, fake_proxies):
+    out, _ = cohort
+    man = load_manifest(out / "manifest.csv")
+    seen = fake_proxies([0.91])
+
+    result = screen(man, device="cpu", progress=lambda _: None)
+
+    assert len(seen) == 1 and len(result.attempts) == 1
+    assert result.verdict == "passed" and result.epochs == 1

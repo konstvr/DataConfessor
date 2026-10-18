@@ -18,6 +18,9 @@ __all__ = [
 
 # Torch costs a few seconds to import and `init`, `check` and `advise` never touch it, so
 # the public names are resolved on first use rather than at import (PEP 562).
+# NOTE: "screen" is both a submodule and the name of its entry point here, so
+# `from dataconfessor import screen` gives the FUNCTION. Code that wants the module should
+# use `importlib.import_module("dataconfessor.screen")`.
 _LAZY = {
     "Manifest": ("manifest", "Manifest"),
     "load_manifest": ("manifest", "load"),

@@ -86,9 +86,9 @@ def cmd_screen(args: argparse.Namespace) -> int:
         print(f"WARNING: {w}")
 
     result = run_screen(
-        man, n_models=args.models, epochs=args.epochs, flag_fraction=args.flag,
-        arch=args.arch, size=args.size, device=args.device, cache_dir=args.cache_dir,
-        loader=args.loader, keep_scores=bool(args.report),
+        man, n_models=args.models, epochs=args.epochs, max_epochs=args.max_epochs,
+        flag_fraction=args.flag, arch=args.arch, size=args.size, device=args.device,
+        cache_dir=args.cache_dir, loader=args.loader, keep_scores=bool(args.report),
     )
     print()
     print(result.summary_text())
@@ -96,6 +96,8 @@ def cmd_screen(args: argparse.Namespace) -> int:
     if args.patients:
         result.write_patients(args.patients)
         print(f"\nFLAGGED COHORT (sensitive) -> {args.patients}")
+        print(f"  verdict: {result.verdict} -- also a column in the file, so it cannot be "
+              f"separated from the rows it qualifies")
         print("  This file ranks individuals by privacy risk. Keep it local: do not read it "
               "into an AI assistant's context, print it, or send it anywhere.")
     else:
@@ -117,18 +119,21 @@ def cmd_screen(args: argparse.Namespace) -> int:
         print(f"Report (no identifiers, safe to share) -> {args.report}")
 
     if not result.passed:
-        nxt = (f"dataconfessor screen {args.manifest} --epochs "
-               f"{3 if args.epochs < 3 else args.epochs + 2}")
-        print(f"\nNEXT: the self-consistency check failed, so the flags are not usable. "
-              f"Re-run with longer proxies: {nxt}")
-        print("  Then --epochs 5, then --models 8. If three re-runs still fail, STOP: this "
-              "dataset cannot be ranked reliably by a screen and needs a full audit. Do not "
-              "lower the threshold and do not use the flags that were written.")
+        print(f"\nNEXT: the fail-safe already retried up to {result.epochs} epoch(s) and the "
+              f"check is still below the floor, so these flags are marked below_floor and "
+              f"are less reliable than a passing screen.")
+        print("  Use them to prioritise, not to conclude. Worth trying, in this order: "
+              "--models 8; confirming that the patient column really groups one person's "
+              "records; a higher ceiling with --max-epochs. If none of that clears the "
+              "floor, this dataset needs a full shadow-model audit. Do not lower the "
+              "threshold.")
     else:
         print(f"\nNEXT: dataconfessor advise  (mitigations), or dataconfessor teachers "
               f"{args.manifest} --flagged {args.patients or '<patients.csv>'} --epochs "
               f"<your production epochs>  (soft labels for self-distillation)")
-    return 0
+    # The flags are always delivered, so the exit code stays 0 unless the operator asked a
+    # pipeline to stop on a below-floor verdict.
+    return 3 if (args.strict and not result.passed) else 0
 
 
 def cmd_teachers(args: argparse.Namespace) -> int:
@@ -192,7 +197,16 @@ def build_parser() -> argparse.ArgumentParser:
     _add_data_args(p)
     p.add_argument("--models", type=int, default=4, help="proxy models, even number "
                                                          "(default 4)")
-    p.add_argument("--epochs", type=int, default=1, help="epochs per proxy (default 1)")
+    p.add_argument("--epochs", type=int, default=1,
+                   help="epochs per proxy to start from (default 1)")
+    p.add_argument("--max-epochs", type=int, default=5,
+                   help="ceiling for the fail-safe's automatic retries (default 5). While "
+                        "the self-consistency check is below the floor the screen escalates "
+                        "1 -> 2 -> 5 epochs by itself; set this equal to --epochs to turn "
+                        "retrying off.")
+    p.add_argument("--strict", action="store_true",
+                   help="exit 3 rather than 0 when the check is still below the floor, for "
+                        "pipelines that must stop instead of acting on weaker flags")
     p.add_argument("--flag", type=float, default=0.20,
                    help="fraction of patients to flag (default 0.20, the calibrated point)")
     p.add_argument("--arch", default=None,

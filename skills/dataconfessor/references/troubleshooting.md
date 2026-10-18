@@ -3,16 +3,25 @@
 ## The self-consistency check failed
 
 The two independent halves of the proxy models disagree about who is atypical, so the
-ranking is not reproducible and the flags mean nothing. In order:
+ranking is not reproducible.
 
-1. **Longer proxies.** `--epochs 3`, then `--epochs 5`. The usual cause is proxies too weak
-   to rank anyone: a model that has learned nothing scores every record alike. If a utility
-   curve for the task exists, pick the epoch at which held-out performance first approaches
-   its peak.
-2. **More proxies.** `--models 8`, which doubles the cost.
-3. **The data.** Is `patient_id` really a person? Are many records near-duplicates of each
-   other? Does every class have enough records for one epoch to learn anything? Are the
-   images so small that the signal is gone?
+**The tool handles the first and most common cause by itself.** Under-trained proxies — a
+model that has learned nothing scores every record alike — are why most screens fail the
+check, so the fail-safe retrains at 2 and then 5 epochs (`--max-epochs`, default 5) and stops
+at the first budget that clears the floor. The verdict is then `passed_after_retry`, and the
+attempt history is in the summary JSON. You do not need to re-run anything.
+
+If the verdict is `below_floor`, the ladder ran out. The flags are still written, marked
+`below_floor` in the summary and in a column of the patient CSV, and they are weaker than a
+passing screen: use them to prioritise, not to conclude. Then, in order:
+
+1. **More proxies.** `--models 8`, which doubles the cost. On ECG data this took the check
+   from 0.79 to 0.90.
+2. **The data.** Is `patient_id` really a person? Are many records near-duplicates of each
+   other? Does every class have enough records to learn? Are the images so small that the
+   signal is gone?
+3. **A higher ceiling.** `--max-epochs 10`, if a utility curve for the task suggests the
+   proxies are still improving.
 4. **Stop.** Some datasets cannot be screened this way — in the source study a per-example
    benchmark with no patient structure scored 0.50–0.64 and never passed. Say so, and point
    at a full shadow-model audit instead.

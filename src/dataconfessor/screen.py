@@ -39,6 +39,16 @@ from . import models as _models
 
 DEFAULT_MODELS = 4
 DEFAULT_EPOCHS = 1
+DEFAULT_MAX_EPOCHS = 5
+EPOCH_LADDER = (1, 2, 5)
+"""What the fail-safe tries when the self-consistency check fails, in order.
+
+One epoch is at or near peak utility on the source study's datasets, so it is where a screen
+starts. Where it is not enough the cause is almost always proxies too weak to rank anyone --
+on shoulder MRI, three identical one-epoch runs scored 0.69, 0.73 and 0.68 (the split-half
+correlation at four proxies wobbles by about +/-0.05 on GPU), while five-epoch proxies
+reached 0.90. Five is therefore the top of the ladder and the default ceiling: beyond it the
+screen stops being cheap, which is the property that makes it worth running at all."""
 DEFAULT_FLAG_FRACTION = 0.20
 """The operating point the source study calibrated: flagging 20% of patients recovered
 65-96% of the tail a full audit found (3.2-4.8x random flagging) across six dataset-recipe
@@ -130,19 +140,38 @@ def atypicality(scores: np.ndarray, membership: np.ndarray, patient_codes: np.nd
 
 
 @dataclass
+class Attempt:
+    """One pass of the proxies, at one epoch budget."""
+
+    epochs: int
+    self_consistency: float
+    gpu_seconds: float
+    gpu_joules: float | None
+
+    @property
+    def passed(self) -> bool:
+        sc = self.self_consistency
+        return sc == sc and sc >= SELF_CONSISTENCY_FLOOR
+
+
+@dataclass
 class ScreenResult:
     n_patients: int
     n_records: int
     n_models: int
     epochs: int
+    """Epochs of the attempt these flags come from, which is the last one tried."""
     flag_fraction: float
     arch: str
     pretrained: bool
     per_record: bool
     self_consistency: float
     gpu_seconds: float
+    """Wall-clock of every attempt, so the reported cost includes the retries."""
     gpu_joules: float | None
     device: str
+    attempts: list
+    """[Attempt] in the order they were run. Length > 1 means the fail-safe escalated."""
     patient_names: list
     patient_atypicality: list
     percentile: list
@@ -159,6 +188,19 @@ class ScreenResult:
         sc = self.self_consistency
         return sc == sc and sc >= SELF_CONSISTENCY_FLOOR
 
+    @property
+    def verdict(self) -> str:
+        """`passed`, `passed_after_retry`, or `below_floor`.
+
+        The flags are delivered in all three cases -- withholding them was the old behaviour
+        and it left the operator with nothing to act on and no way to tell a marginal dataset
+        from a hopeless one. What changes with the verdict is how much weight they carry, so
+        the verdict travels with the flags rather than only with the log.
+        """
+        if not self.passed:
+            return "below_floor"
+        return "passed" if len(self.attempts) <= 1 else "passed_after_retry"
+
     def safe_summary(self, patients_path: str | None = None) -> dict[str, Any]:
         """Aggregate-only view: no identifiers, no per-patient scores.
 
@@ -172,6 +214,8 @@ class ScreenResult:
         d["n_flagged"] = self.n_flagged
         d["self_consistency_floor"] = SELF_CONSISTENCY_FLOOR
         d["self_consistency_passed"] = self.passed
+        d["verdict"] = self.verdict
+        d["epochs_used"] = self.epochs
         d["gpu_minutes"] = round(self.gpu_seconds / 60, 2)
         d["gpu_kwh"] = round(self.gpu_joules / 3.6e6, 6) if self.gpu_joules else None
         d["patient_detail_written_to"] = patients_path
@@ -186,18 +230,27 @@ class ScreenResult:
         return [p for p, f in zip(self.patient_names, self.flagged) if f]
 
     def write_patients(self, path: str | Path) -> None:
+        """The flagged cohort, with the verdict on every row.
+
+        The verdict is a column rather than a header comment because this file gets copied,
+        mailed and opened in a spreadsheet, and a warning that lives anywhere else does not
+        survive that. A column cannot be separated from the rows it qualifies, and it needs
+        no `comment=` argument to parse.
+        """
         import csv
 
         with open(path, "w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
-            w.writerow(["patient_id", "atypicality", "percentile", "flagged"])
+            w.writerow(["patient_id", "atypicality", "percentile", "flagged",
+                        "screen_verdict", "self_consistency"])
             rows = sorted(
                 zip(self.patient_names, self.patient_atypicality, self.percentile,
                     self.flagged),
                 key=lambda r: (-r[2] if r[2] == r[2] else 1e9),
             )
+            verdict, sc = self.verdict, f"{self.self_consistency:.4f}"
             for name, atyp, pct, flag in rows:
-                w.writerow([name, f"{atyp:.6f}", f"{pct:.2f}", int(flag)])
+                w.writerow([name, f"{atyp:.6f}", f"{pct:.2f}", int(flag), verdict, sc])
 
     def summary_text(self) -> str:
         unit = "records" if self.per_record else "patients"
@@ -208,16 +261,25 @@ class ScreenResult:
             f"{self.gpu_seconds / 60:.1f} minutes" + _energy_text(self.gpu_joules),
             f"  flagged {self.n_flagged:,} {unit} ({self.flag_fraction:.0%})",
         ]
+        if len(self.attempts) > 1:
+            ladder = " -> ".join(
+                f"{a.epochs} epoch(s): {a.self_consistency:.3f}" for a in self.attempts
+            )
+            lines.append(f"  fail-safe escalated the proxies: {ladder}")
+
         sc = self.self_consistency
         if sc != sc:
             lines.append("  ** SELF-CONSISTENCY could not be computed (needs >= 4 models). "
-                         "Do not act on the flags.")
+                         "Treat the flags as unverified.")
         elif sc < SELF_CONSISTENCY_FLOOR:
             lines.append(
-                f"  ** SELF-CONSISTENCY {sc:.3f} < {SELF_CONSISTENCY_FLOOR}: two independent "
-                f"halves of the proxy models DISAGREE about who is atypical. The ranking is "
-                f"not reproducible on this data, so the flags are not trustworthy. Do not act "
-                f"on them -- re-run with more epochs (see the troubleshooting ladder)."
+                f"  ** SELF-CONSISTENCY {sc:.3f} < {SELF_CONSISTENCY_FLOOR} after training "
+                f"the proxies up to {self.epochs} epoch(s): two independent halves of the "
+                f"proxy models still DISAGREE about who is atypical. The flags below are "
+                f"from the most-trained attempt and are LESS RELIABLE than a passing screen. "
+                f"Use them to prioritise, not to conclude; try --models 8, check that the "
+                f"patient column really groups one person's records, and treat a full "
+                f"shadow-model audit as the remaining option."
             )
         else:
             lines.append(
@@ -351,11 +413,28 @@ def _confidence(logits: torch.Tensor, y: torch.Tensor, is_multilabel: bool) -> t
     return torch.log(p_true) - torch.log1p(-p_true)
 
 
+def escalation(start: int, max_epochs: int) -> list[int]:
+    """The epoch budgets the fail-safe will try, in order.
+
+    `EPOCH_LADDER` from the first rung at or above `start`, capped at `max_epochs`; a start
+    the ladder does not contain is kept as its own first rung, so `--epochs 3 --max-epochs 5`
+    runs 3 then 5. `max_epochs <= start` means one attempt and no retry.
+    """
+    if start < 1:
+        raise ValueError(f"epochs must be >= 1, got {start}")
+    ceiling = max(max_epochs, start)
+    rungs = {start, *(e for e in EPOCH_LADDER if e > start)}
+    if ceiling > max(EPOCH_LADDER):
+        rungs.add(ceiling)  # a raised ceiling is a rung, not just a cap
+    return sorted(e for e in rungs if e <= ceiling)
+
+
 def run(
     man: Manifest,
     *,
     n_models: int = DEFAULT_MODELS,
     epochs: int = DEFAULT_EPOCHS,
+    max_epochs: int = DEFAULT_MAX_EPOCHS,
     flag_fraction: float = DEFAULT_FLAG_FRACTION,
     arch: str | None = None,
     pretrained: bool | None = None,
@@ -367,7 +446,18 @@ def run(
     progress: Callable[[str], None] = _say,
     keep_scores: bool = False,
 ) -> ScreenResult:
-    """Train the proxies, rank patients, flag the top `flag_fraction`."""
+    """Train the proxies, rank patients, flag the top `flag_fraction`.
+
+    The self-consistency fail-safe runs here rather than in the caller: a screen whose two
+    proxy halves disagree is usually under-trained, not undoable, so the tool escalates the
+    epoch budget itself (`escalation`) and stops at the first attempt that clears the floor.
+    If none does, the flags from the most-trained attempt are returned anyway, carrying a
+    `below_floor` verdict -- the operator is better served by a ranking they know to be
+    shaky than by no ranking at all.
+
+    Every attempt reuses the same membership draw, so the only thing that changes between
+    them is how long the proxies trained, and the reported cost is the sum of all attempts.
+    """
     dev = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
     records = RecordSet(man, size=size, cache_dir=cache_dir, loader=loader, device=dev,
                         progress=progress)
@@ -381,24 +471,55 @@ def run(
     lr = 1e-4 if pretrained else 1e-3
 
     membership = complementary_membership(man.patient_codes, n_models, seed)
-    scores = np.zeros((n_models, len(records)), dtype=np.float64)
-
     read_joules = _nvml_joules() if dev.type == "cuda" else (lambda: None)
-    j0 = read_joules()
-    t0 = time.perf_counter()
-    for i in range(n_models):
-        progress(f"  proxy {i + 1}/{n_models} ({int(membership[i].sum()):,} records)")
-        scores[i] = _train_one(
-            records, np.flatnonzero(membership[i]), arch=arch, pretrained=pretrained,
-            epochs=epochs, lr=lr, seed=seed + i, device=dev,
-        )
-    gpu_seconds = time.perf_counter() - t0
-    j1 = read_joules()
-    joules = (j1 - j0) if (j0 is not None and j1 is not None) else None
+
+    plan = escalation(epochs, max_epochs)
+    attempts: list[Attempt] = []
+    scores = np.zeros((n_models, len(records)), dtype=np.float64)
+    self_consistency = float("nan")
+
+    for attempt_no, attempt_epochs in enumerate(plan, start=1):
+        j0 = read_joules()
+        t0 = time.perf_counter()
+        for i in range(n_models):
+            progress(f"  proxy {i + 1}/{n_models} at {attempt_epochs} epoch(s) "
+                     f"({int(membership[i].sum()):,} records)")
+            scores[i] = _train_one(
+                records, np.flatnonzero(membership[i]), arch=arch, pretrained=pretrained,
+                epochs=attempt_epochs, lr=lr, seed=seed + i, device=dev,
+            )
+        elapsed = time.perf_counter() - t0
+        j1 = read_joules()
+        self_consistency = _self_consistency(scores, membership, man.patient_codes, n_models)
+        attempts.append(Attempt(
+            epochs=attempt_epochs, self_consistency=self_consistency, gpu_seconds=elapsed,
+            gpu_joules=(j1 - j0) if (j0 is not None and j1 is not None) else None,
+        ))
+
+        if attempts[-1].passed:
+            break
+        value = ("could not be computed" if self_consistency != self_consistency
+                 else f"{self_consistency:.3f}")
+        if attempt_no < len(plan):
+            progress(
+                f"  self-consistency {value} is below the {SELF_CONSISTENCY_FLOOR} floor: "
+                f"the proxies disagree about who is atypical, which usually means they are "
+                f"under-trained. Retrying with {plan[attempt_no]} epoch(s)."
+            )
+        else:
+            progress(
+                f"  self-consistency {value} is still below the {SELF_CONSISTENCY_FLOOR} "
+                f"floor at {attempt_epochs} epoch(s), the maximum. The flags from this "
+                f"attempt are returned, marked below_floor, and are less reliable than a "
+                f"passing screen."
+            )
+
+    epochs_used = attempts[-1].epochs
+    gpu_seconds = float(sum(a.gpu_seconds for a in attempts))
+    joules = (None if any(a.gpu_joules is None for a in attempts)
+              else float(sum(a.gpu_joules for a in attempts)))
 
     _, patient_atyp = atypicality(scores, membership, man.patient_codes)
-    self_consistency = _self_consistency(scores, membership, man.patient_codes, n_models)
-
     valid = np.isfinite(patient_atyp)
     order = np.argsort(-np.where(valid, patient_atyp, -np.inf), kind="stable")
     pct = np.full(len(patient_atyp), np.nan)
@@ -408,10 +529,11 @@ def run(
     flagged[order[:k]] = True
 
     result = ScreenResult(
-        n_patients=man.n_patients, n_records=man.n_records, n_models=n_models, epochs=epochs,
-        flag_fraction=flag_fraction, arch=arch, pretrained=bool(pretrained),
-        per_record=man.per_record, self_consistency=self_consistency,
-        gpu_seconds=gpu_seconds, gpu_joules=joules, device=str(dev),
+        n_patients=man.n_patients, n_records=man.n_records, n_models=n_models,
+        epochs=epochs_used, flag_fraction=flag_fraction, arch=arch,
+        pretrained=bool(pretrained), per_record=man.per_record,
+        self_consistency=self_consistency, gpu_seconds=gpu_seconds, gpu_joules=joules,
+        device=str(dev), attempts=attempts,
         patient_names=list(man.patient_names), patient_atypicality=patient_atyp.tolist(),
         percentile=pct.tolist(), flagged=flagged.tolist(),
     )

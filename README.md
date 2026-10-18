@@ -79,18 +79,19 @@ dataconfessor screen ./synth/manifest.csv --patients ./synth/flagged.csv \
     --report ./synth/report.html
 ```
 
-On this toy cohort the default one-epoch proxies fail the self-consistency gate, so the tool
-refuses to stand behind the flags and tells you to train longer. Do what it says:
+On this toy cohort the default one-epoch proxies fail the self-consistency check at 0.097 —
+and you will watch the tool say so, retrain them at two epochs, reach 0.827 and carry on:
 
-```bash
-dataconfessor screen ./synth/manifest.csv --epochs 3 --patients ./synth/flagged.csv \
-    --report ./synth/report.html
+```
+self-consistency 0.097 is below the 0.7 floor: the proxies disagree about who is
+atypical, which usually means they are under-trained. Retrying with 2 epoch(s).
+...
+fail-safe escalated the proxies: 1 epoch(s): 0.097 -> 2 epoch(s): 0.827
 ```
 
-That passes (self-consistency 0.78), and `synth/flagged.csv` then holds 70% of the patients
-listed in `synth/atypical_truth.txt` — the tail the generator planted, against the 20%
-random flagging would give. Real datasets do not come with a truth file, which is the whole
-reason the gate exists.
+`synth/flagged.csv` then holds 62% of the patients listed in `synth/atypical_truth.txt` —
+the tail the generator planted, against the 20% random flagging would give. Real datasets do
+not come with a truth file, which is the whole reason the check exists.
 
 ## The input: one CSV
 
@@ -105,14 +106,32 @@ natively; DICOM, NIfTI and WFDB go through a four-line `--loader` hook. The one 
 downstream can check is that **every record of one person carries the same `patient_id`** —
 see `skills/dataconfessor/references/manifest.md`.
 
-## The gate
+## The gate, and what it does when it fails
 
 The only validity check available on a dataset nobody has audited: split the proxy models
 into two independent halves, rank patients from each, correlate. Below **0.70** the two
-halves disagree, the ranking is noise, and the flags must not be used — train longer
-(`--epochs 3`, then `5`), then use more proxies (`--models 8`), then look at the data. The
-tool says so in its output and in the report; it does not fail quietly and it does not fail
-loudly in the exit code either, so read the value.
+halves disagree about who is atypical, and the ranking is not reproducible.
+
+Almost always that means the proxies are under-trained rather than that the dataset cannot
+be screened, so the tool fixes it itself: it reports the failure, retrains at **2 then 5
+epochs** (`--max-epochs`), and stops at the first budget that clears the floor. Every run
+ends with a verdict you can act on:
+
+| | |
+|---|---|
+| `passed` | cleared the floor on the first attempt |
+| `passed_after_retry` | cleared it after the fail-safe trained the proxies longer |
+| `below_floor` | never cleared it — the flags are still written, and they are weaker |
+
+A `below_floor` run still hands you the flags from the most-trained attempt, because a
+ranking you know to be shaky is more useful than none; what it does not hand you is the
+right to present them as a finding. The verdict goes into the summary JSON, into the report,
+and into a **column of the patient CSV**, so the file cannot be separated from its warning.
+The exit code stays 0 because the flags were delivered; `--strict` makes `below_floor` exit
+3, for pipelines that should stop.
+
+Clearing the floor is a necessary condition, not an optimum: the fail-safe stops at the
+first budget that passes, not at the one that ranks best.
 
 ## Commands
 
@@ -120,7 +139,7 @@ loudly in the exit code either, so read the value.
 |---|---|
 | `dataconfessor init` | build `manifest.csv` from a folder + a labels CSV |
 | `dataconfessor check` | validate the manifest, describe the cohort — free and instant |
-| `dataconfessor screen` | rank patients, flag the top 20%, write the report |
+| `dataconfessor screen` | rank patients, flag the top 20%, retry the proxies if the check fails, write the report |
 | `dataconfessor teachers` | soft labels for the flagged records (self-distillation) |
 | `dataconfessor advise` | the measured mitigations, ranked for your recipe |
 | `dataconfessor ui` | all of the above in a browser, served from this machine only |

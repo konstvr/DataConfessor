@@ -114,9 +114,14 @@ function readScreen(text) {
     (out.patients = m[1]), (out.unit = m[2]), (out.records = m[3]);
   if ((m = text.match(/flagged\s+([\d,]+)\s+\w+\s+\((\d+)%\)/)))
     (out.flagged = m[1]), (out.flagRate = Number(m[2]));
-  if ((m = text.match(/self-consistency\s+([\d.]+)/i)))
-    out.consistency = Number(m[1]);
-  out.failed = /SELF-CONSISTENCY .* < /.test(text);
+  // Read the value from the SUMMARY lines, not from the fail-safe's progress lines: a
+  // retried screen prints several self-consistency values and only the last one is the
+  // verdict.
+  if ((m = text.match(/self-consistency ([\d.]+) \(floor/)))
+    (out.consistency = Number(m[1])), (out.failed = false);
+  else if ((m = text.match(/SELF-CONSISTENCY ([\d.]+) </)))
+    (out.consistency = Number(m[1])), (out.failed = true);
+  if ((m = text.match(/fail-safe escalated the proxies: (.+)/))) out.ladder = m[1].trim();
   if ((m = text.match(/x (\d+) epoch\(s\) of (\S+)/))) (out.epochs = m[1]), (out.arch = m[2]);
   if ((m = text.match(/([\d.]+) minutes/))) out.minutes = m[1];
   if ((m = text.match(/([\d.]+) kWh/))) out.energy = m[1] + " kWh";
@@ -150,6 +155,7 @@ function paintResult(r) {
     ["Records", r.records],
     ["Flagged", `${r.flagged} (${r.flagRate}%)`],
     ["Self-consistency", r.consistency != null ? r.consistency.toFixed(3) : "—"],
+    ...(r.ladder ? [["Fail-safe", r.ladder]] : []),
     ["Proxies", r.arch ? `${r.arch} × ${r.epochs} epoch(s)` : "—"],
     ["Cost", [r.minutes && `${r.minutes} min`, r.energy].filter(Boolean).join(" · ") || "—"],
   ];
@@ -161,11 +167,13 @@ function paintResult(r) {
 
   if (r.consistency == null) return;
   if (r.failed) {
-    setVerdict("fail", `Self-consistency ${r.consistency.toFixed(3)} — do not use these flags`,
-      "Two independent halves of the proxy models disagree about who is atypical, so the " +
-      "ranking is not reproducible on this data. Train the proxies longer (3 epochs, then 5), " +
-      "then try 8 proxies, then check that the patient column really groups one person's " +
-      "records. After three failures, stop: this dataset needs a full audit.");
+    setVerdict("fail",
+      `Self-consistency ${r.consistency.toFixed(3)} — these flags are weaker than a passing screen`,
+      "The fail-safe retrained the proxies for as many epochs as it was allowed and the two " +
+      "halves still disagree about who is atypical. The flags come from the most-trained " +
+      "attempt and are marked below_floor in the CSV. Use them to prioritise, not to " +
+      "conclude: try 8 proxies, check that the patient column really groups one person's " +
+      "records, and consider a full audit.");
   } else {
     setVerdict("pass", `Self-consistency ${r.consistency.toFixed(3)} — the ranking holds`,
       "Two independent halves of the proxy models rank patients the same way. That is " +

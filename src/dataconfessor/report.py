@@ -175,20 +175,28 @@ def build(
     ms = man_summary(man)
     figs = panels(result, scores, membership, man.patient_codes)
 
-    gate = (
-        f'<div class="banner pass"><b>Self-consistency {result.self_consistency:.3f} &ge; '
-        f'{SELF_CONSISTENCY_FLOOR}.</b> Two independent halves of the proxy models rank '
-        f'{unit}s the same way, so the ranking is reproducible. This is necessary for the '
-        f'flags to mean anything &mdash; it does not predict how much of the true tail they '
-        f'contain.</div>'
-        if result.passed else
-        f'<div class="banner fail"><b>Self-consistency {result.self_consistency:.3f} &lt; '
-        f'{SELF_CONSISTENCY_FLOOR}: do not act on these flags.</b> Two independent halves of '
-        f'the proxy models disagree about who is atypical, so the ranking is not reproducible '
-        f'on this data. Re-run with more epochs (<code>--epochs 3</code>, then '
-        f'<code>--epochs 5</code>), then more proxies (<code>--models 8</code>), then check '
-        f'the patient grouping. The flag column in the CSV is invalid until this passes.</div>'
-    )
+    retried = len(result.attempts) > 1
+    if result.passed:
+        gate = (
+            f'<div class="banner pass"><b>Self-consistency {result.self_consistency:.3f} '
+            f'&ge; {SELF_CONSISTENCY_FLOOR}'
+            + (f', reached after the fail-safe raised the proxies to {result.epochs} '
+               f'epochs.</b> ' if retried else '.</b> ')
+            + f'Two independent halves of the proxy models rank {unit}s the same way, so the '
+            f'ranking is reproducible. This is necessary for the flags to mean anything '
+            f'&mdash; it does not predict how much of the true tail they contain.</div>'
+        )
+    else:
+        gate = (
+            f'<div class="banner fail"><b>Self-consistency {result.self_consistency:.3f} '
+            f'&lt; {SELF_CONSISTENCY_FLOOR} at {result.epochs} epochs: these flags are '
+            f'weaker than a passing screen.</b> The fail-safe trained the proxies as long as '
+            f'it was allowed to and the two halves still disagree about who is atypical. The '
+            f'flags below come from the most-trained attempt and are marked '
+            f'<code>below_floor</code> in the CSV. Use them to prioritise, not to conclude; '
+            f'try <code>--models 8</code>, check that the patient column really groups one '
+            f'person&rsquo;s records, and consider a full shadow-model audit.</div>'
+        )
 
     rows = [
         (f"{unit.capitalize()}s screened", f"{result.n_patients:,}"),
@@ -196,6 +204,7 @@ def build(
         (f"{unit.capitalize()}s flagged", f"{result.n_flagged:,} ({result.flag_fraction:.0%})"),
         ("Proxy budget", f"{result.n_models} models &times; {result.epochs} epoch(s), "
                          f"{e(result.arch)}{' (ImageNet init)' if result.pretrained else ''}"),
+        ("Verdict", f"<code>{result.verdict}</code>"),
         ("Compute", f"{result.gpu_seconds / 60:.1f} minutes on {e(result.device)}"
                     + (_energy(result.gpu_joules) + " (GPU board, NVML)"
                        if result.gpu_joules else "")),
@@ -204,6 +213,9 @@ def build(
                                 f"max {ms['records_per_patient']['max']}"),
         ("Task", f"{ms['task']}, {len(ms['classes'])} classes"),
     ]
+    if len(result.attempts) > 1:
+        rows.append(("Fail-safe attempts", " &rarr; ".join(
+            f"{a.epochs} ep: {a.self_consistency:.3f}" for a in result.attempts)))
     if patients_path:
         rows.append(("Flagged cohort (sensitive)", f"<code>{e(patients_path)}</code>"))
     if summary_path:

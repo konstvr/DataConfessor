@@ -88,42 +88,52 @@ Add `--device cuda` if the machine has a GPU and the tool did not pick it up.
 
 Before you launch it, tell the user what it will cost: the record count from step 4, that
 the first run decodes every record into a cache of roughly `records x size x size x channels`
-bytes, and that the screen itself takes minutes on a GPU and up to an hour on a CPU. Then
-run it and wait. Do not run it in the background and report before it has finished.
+bytes, and that the screen itself takes minutes on a GPU and up to an hour on a CPU — and up
+to about four times that if the self-consistency fail-safe has to retrain the proxies at 2
+and then 5 epochs. Then run it and wait. Do not run it in the background and report before
+it has finished.
 
 ## Step 6 — the self-consistency gate
 
-**This decides whether the flags may be used.** Read `self_consistency` from the printed
-output (or from `screen_summary.json`, field `self_consistency_passed`).
+**This decides how much weight the flags carry.** The tool runs the check itself and, when
+it fails, retrains the proxies for longer on its own — 1 → 2 → 5 epochs — stopping at the
+first budget that clears the floor. **Do not re-run the screen yourself to escalate; it has
+already done it**, and a second run would repeat the whole ladder.
 
-| self-consistency | What it means | What you do |
+Read `verdict` from `screen_summary.json` (or the printed summary):
+
+| verdict | What it means | What you do |
 |---|---|---|
-| ≥ 0.70 | two independent halves of the proxy models rank patients the same way | report the results, go to step 7 |
-| < 0.70 | the halves disagree; the ranking is noise | the flags are **invalid**. Escalate, below. |
-| `nan` | fewer than four proxy models | re-run with `--models 4` |
+| `passed` | the check cleared 0.70 on the first attempt | report the results, go to step 7 |
+| `passed_after_retry` | it cleared the floor only after the fail-safe trained the proxies longer | report the results **and** say how many epochs were needed |
+| `below_floor` | it never cleared the floor, even at the maximum | the flags are still written, and they are weaker. See below. |
 
-The exit code is 0 either way, so never use the exit code as the verdict. The patient CSV
-is written even on failure; it is invalid.
+The exit code is 0 in all three cases, because the flags are always delivered; never use
+the exit code as the verdict. (`--strict` makes a `below_floor` run exit 3, for pipelines.)
 
-**Escalation, one change at a time, reporting each attempt with its value and its cost:**
+**When the verdict is `below_floor`**, tell the user plainly: two independent halves of the
+proxy models disagree about who is atypical, so this ranking is less reliable than a passing
+screen. The flags are usable to *prioritise* — consent review, where to spend a privacy
+budget — and not to conclude anything about an individual. Then, one change at a time:
 
-1. `--epochs 3`, then `--epochs 5`. The usual cause is proxies too weak to rank anyone. On
-   shoulder MRI one-epoch proxies scored 0.690 and five-epoch proxies passed.
-2. `--models 8`. On ECG data this raised 0.79 to 0.90 for twice the compute.
-3. Check the data: is the patient column really a person? Are records near-duplicates? Are
-   there enough records per class?
-4. **Stop after three failed re-runs.** Do not keep trying combinations. Tell the user the
-   screen cannot rank patients reliably on this dataset and that a full shadow-model audit
-   is the remaining option. Datasets with no patient structure fail by nature.
+1. `--models 8`. On ECG data this raised the check from 0.79 to 0.90 for twice the compute.
+2. Check the data: is the patient column really a person? Are records near-duplicates? Does
+   every class have enough records to learn?
+3. A higher ceiling: `--max-epochs 10`.
+4. **Stop after those.** Tell the user the screen cannot rank patients reliably on this
+   dataset and that a full shadow-model audit is the remaining option. Datasets with no
+   patient structure fail by nature.
 
-Do not lower the threshold, do not hand-pick patients, do not present failed flags.
+Never lower the threshold, never hand-pick patients, and never describe `below_floor` flags
+as if they had passed.
 
 ## Step 7 — report
 
 Give the user:
 
 - patients screened and flagged, and the proxy budget (models × epochs) and minutes;
-- the self-consistency value and the verdict;
+- the self-consistency value and the verdict (`passed`, `passed_after_retry` or
+  `below_floor`), and, if the fail-safe retried, the epoch budget it settled on;
 - the path of `screen_report.html` (figures, no identifiers) and of the patient CSV
   (sensitive, which you have not opened);
 - these two caveats, in your own words: it is not a leakage measurement, and an unflagged

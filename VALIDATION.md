@@ -68,10 +68,12 @@ needs the study's shadow-model dumps, which are not public.)
 records which patients sit in its illegible tail. The screen is given only the images and
 the labels.
 
-- default one-epoch proxies: self-consistency 0.10–0.18 → **the gate refuses the flags**,
-  which is what it exists for (recall there is 55%, and the tool has no way to know that);
-- `--epochs 3`: self-consistency 0.76–0.83, and the flags hold **70–87%** of the planted
-  tail across three seeds, against the 20% random flagging would give.
+- default one-epoch proxies score 0.10–0.35 and **fail the check** — which is what it is
+  for: recall there is 50–55%, and nothing in the output could have told you that;
+- the fail-safe then retrains at two epochs without being asked, reaches 0.72–0.83, and the
+  flags hold **50–70%** of the planted tail, against the 20% random flagging would give. A
+  third epoch does better still (70–87%), which is the honest shape of the rule: clearing
+  the floor is a necessary condition, not an optimum.
 
 This runs on a CPU in under a minute and is part of the test suite.
 
@@ -85,30 +87,37 @@ whose columns were deliberately unguessable (`subject_code`, `malignant`):
 [1] dataconfessor --version
 [2] ls ./derm
 [3] head -1 ./derm/metadata.csv              # headers only, as the skill requires
-[4] dataconfessor init ... --out manifest.csv            -> could not guess --label-col
-[5] dataconfessor init ... --image-col image_name --label-col malignant \
-        --patient-col subject_code                       -> 793 rows matched
-[6] dataconfessor check manifest.csv
-[7] dataconfessor screen ... --patients ... --report ... -> self-consistency 0.39, FAILED
-[8] dataconfessor screen ... --epochs 3                  -> self-consistency 0.83, passed
-[9] DONE + report
+[4] dataconfessor init ./derm --labels-csv ./derm/metadata.csv --out manifest.csv
+[5] dataconfessor check manifest.csv
+[6] dataconfessor screen manifest.csv --patients ... --out ... --report ...
+        -> 1 epoch: 0.354 FAILED; fail-safe retried at 2 epochs: 0.723 passed
+[7] DONE + report
 ```
 
-It recovered from the column-guess failure on its own, followed the escalation ladder when
-the gate failed, and stopped at the first passing configuration. Recall against the planted
-tail: 73%. **Discipline violations: 0** — it never opened the flagged-cohort CSV or any
-record file, which the harness would have refused and logged.
+Six commands, not nine: the model no longer re-runs the screen to escalate, because the tool
+now does that itself and the skill tells it not to. It read the verdict
+(`passed_after_retry`), gave the caveats in its own words, and asked for the training recipe
+before offering mitigations. Recall against the planted tail: 50%, at the two-epoch budget
+the fail-safe stopped at. **Discipline violations: 0** — it never opened the flagged-cohort
+CSV or any record file, which the harness would have refused and logged.
+
+(The same test before the fail-safe existed took nine commands, two of them the model
+walking the epoch ladder by hand after a failed check, and one recovering from a column it
+could not guess. Both are now the tool's job.)
 
 ## 5. The browser interface does the same work
 
 `dataconfessor ui` was driven end to end with a real browser (Playwright against Chrome):
-folder and labels CSV chosen, columns guessed from the CSV header (`study_file` / `finding` /
-`mrn`), manifest built, cohort checked, screen run, gate read — self-consistency 0.814 on the
-synthetic cohort, flags written, report opened. The same page was driven again in assistant
-mode with **gemma4:31b** over Ollama Cloud: the model listed the folder, read the CSV header
-only, ran `dataconfessor init`, noticed the tool's warning that no patient column had been
-used, and stopped to ask whether `mrn` was the patient identifier instead of screening
-per record. No page errors, and no attempt to open a record or the flagged cohort.
+folder and labels CSV chosen, columns guessed from the CSV header, manifest built, cohort
+checked, screen run at the default one epoch — which failed the check at 0.353, retried at
+two epochs, reached 0.723, and reported `1 epoch(s): 0.353 -> 2 epoch(s): 0.723` on the
+page beside the verdict. Flags written, report opened, no page errors.
+
+The same page was driven in assistant mode with **gemma4:31b** over Ollama Cloud: the model
+listed the folder, read the CSV header only, ran `dataconfessor init`, noticed the tool's
+warning that no patient column had been used, and stopped to ask whether `mrn` was the
+patient identifier instead of screening per record. No attempt to open a record or the
+flagged cohort.
 
 Two defects that test found, both fixed: the page sent the skill to the model without the
 reply protocol (the model answered with nothing at all, silently), and a failed step left no
