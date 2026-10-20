@@ -20,16 +20,12 @@ from pathlib import Path
 
 import numpy as np
 
-FLAG = "#D55E00"
-REST = "#0072B2"
-INK, MUTED = "#1a1a19", "#5c5c58"
-"""Okabe-Ito vermillion and blue: validated for deuteranopia, protanopia and tritanopia
-(worst adjacent pair dE 21.9) against a near-white surface. Grey is ink, never a series."""
-
-
-def _energy(joules: float) -> str:
-    kwh = joules / 3.6e6
-    return f", {kwh:.4f} kWh" if kwh >= 1e-4 else f", {joules / 1000:.1f} kJ"
+FLAG = "#AD2A4A"
+REST = "#2E6E9E"
+INK, MUTED = "#161a1d", "#555e66"
+"""Deep rose and steel blue, the same pair the interface uses: validated for deuteranopia,
+protanopia and tritanopia (worst adjacent pair dE 14.4, against the >= 8 target) and for 3:1
+contrast on a near-white surface. Grey is ink, never a series."""
 
 
 def _style(ax):
@@ -39,7 +35,7 @@ def _style(ax):
         ax.spines[side].set_color(MUTED)
         ax.spines[side].set_linewidth(0.8)
     ax.tick_params(colors=MUTED, labelsize=8, width=0.8)
-    ax.grid(axis="y", color="#e6e6e3", linewidth=0.8)
+    ax.grid(axis="y", color="#dde3e7", linewidth=0.8)
     ax.set_axisbelow(True)
     ax.xaxis.label.set_color(MUTED)
     ax.yaxis.label.set_color(MUTED)
@@ -119,7 +115,7 @@ def panels(result, scores=None, membership=None, patient_codes=None) -> list[tup
         ra = np.argsort(np.argsort(a[good])) / max(good.sum() - 1, 1) * 100
         rb = np.argsort(np.argsort(b[good])) / max(good.sum() - 1, 1) * 100
         fig, ax = plt.subplots(figsize=(3.4, 3.0))
-        colour = FLAG if result.passed else "#8a8a86"
+        colour = FLAG if result.passed else "#848d95"
         ax.scatter(ra, rb, s=5, alpha=0.45, color=colour, linewidths=0)
         ax.plot([0, 100], [0, 100], color=INK, linewidth=0.8, linestyle="--")
         ax.set_xlabel("rank from proxy half A (%)")
@@ -136,22 +132,22 @@ def panels(result, scores=None, membership=None, patient_codes=None) -> list[tup
 
 
 _CSS = """
-body{font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#1a1a19;
- background:#fcfcfb;margin:0;padding:32px 24px;}
+body{font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#161a1d;
+ background:#f6f8f9;margin:0;padding:32px 24px;}
 main{max-width:860px;margin:0 auto;}
 h1{font-size:24px;margin:0 0 4px;} h2{font-size:17px;margin:32px 0 8px;}
 h3{font-size:15px;margin:18px 0 4px;}
-.sub{color:#5c5c58;margin:0 0 24px;}
+.sub{color:#555e66;margin:0 0 24px;}
 table{border-collapse:collapse;width:100%;font-size:14px;}
-td,th{text-align:left;padding:6px 10px;border-bottom:1px solid #e6e6e3;}
-th{color:#5c5c58;font-weight:500;width:42%;}
-figure{margin:20px 0;} figcaption{color:#5c5c58;font-size:13px;margin-top:6px;}
+td,th{text-align:left;padding:6px 10px;border-bottom:1px solid #dde3e7;}
+th{color:#555e66;font-weight:500;width:42%;}
+figure{margin:20px 0;} figcaption{color:#555e66;font-size:13px;margin-top:6px;}
 img{max-width:100%;}
 .banner{padding:12px 14px;border-radius:6px;font-size:14px;margin:16px 0;}
-.pass{background:#eef5fb;border-left:4px solid #0072B2;}
-.fail{background:#fdf0e9;border-left:4px solid #D55E00;}
-.warn{background:#fdf8e9;border-left:4px solid #b8860b;}
-code{background:#f0f0ed;padding:1px 5px;border-radius:3px;font-size:13px;}
+.pass{background:#eaf1f7;border-left:4px solid #2E6E9E;}
+.fail{background:#fbecef;border-left:4px solid #AD2A4A;}
+.warn{background:#fbf6e6;border-left:4px solid #8a6a00;}
+code{background:#eaeff2;padding:1px 5px;border-radius:3px;font-size:13px;}
 li{margin:4px 0;}
 """
 
@@ -171,7 +167,19 @@ def build(
     from .screen import SELF_CONSISTENCY_FLOOR
 
     e = html.escape
+    from .energy import device_name
+
     unit = "record" if result.per_record else "patient"
+    device = device_name(result.device)
+    spent = result.energy
+    if spent.joules is None:
+        energy_row = ("not metered on this device &mdash; the GPU board counter is the only "
+                      "meter this tool has")
+    else:
+        amount = (f"{spent.kwh:.4f} kWh" if (spent.kwh or 0) >= 1e-4
+                  else f"{spent.joules / 1000:.1f} kJ")
+        energy_row = (f"{amount} &middot; {spent.watts:.0f} W mean &middot; GPU board only "
+                      f"(NVML), PUE 1.0")
     ms = man_summary(man)
     figs = panels(result, scores, membership, man.patient_codes)
 
@@ -205,9 +213,8 @@ def build(
         ("Proxy budget", f"{result.n_models} models &times; {result.epochs} epoch(s), "
                          f"{e(result.arch)}{' (ImageNet init)' if result.pretrained else ''}"),
         ("Verdict", f"<code>{result.verdict}</code>"),
-        ("Compute", f"{result.gpu_seconds / 60:.1f} minutes on {e(result.device)}"
-                    + (_energy(result.gpu_joules) + " (GPU board, NVML)"
-                       if result.gpu_joules else "")),
+        ("Compute", f"{result.gpu_seconds / 60:.1f} minutes on {e(device)}"),
+        ("Energy", energy_row),
         ("Records per " + unit, f"min {ms['records_per_patient']['min']}, "
                                 f"median {ms['records_per_patient']['median']:.0f}, "
                                 f"max {ms['records_per_patient']['max']}"),

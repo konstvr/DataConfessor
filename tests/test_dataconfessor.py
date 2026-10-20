@@ -263,3 +263,20 @@ def test_one_attempt_when_the_first_check_passes(cohort, fake_proxies):
 
     assert len(seen) == 1 and len(result.attempts) == 1
     assert result.verdict == "passed" and result.epochs == 1
+
+
+def test_loader_spec_accepts_a_windows_path():
+    """`D:/data/loader.py:load` must split on the last colon, not the drive letter."""
+    from importlib import import_module
+
+    data = import_module("dataconfessor.data")
+    root = Path(__file__).resolve().parents[1]
+    spec = f"{root.as_posix()}/examples/loaders/ptbxl_loader.py:load"
+    try:
+        assert callable(data._load_hook(spec))
+    except ImportError as exc:  # wfdb absent is fine; a mangled path is not
+        assert "wfdb" in str(exc), exc
+
+    for bad in ("loader.py", "loader:load", ":load"):
+        with pytest.raises(ValueError, match="path/to/file.py:function"):
+            data._load_hook(bad)

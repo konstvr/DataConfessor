@@ -57,9 +57,25 @@ or a local Ollama so that nothing leaves the building — or **do it yourself**,
 with a folder picker and no commands to type. Both end in the same place: the gate verdict,
 the flagged share of the cohort, and the report.
 
+While a screen runs, four lamps light one by one as the proxies train, and the finished
+report opens inside the page rather than as a loose file on disk.
+
 The server binds `127.0.0.1`, holds a token the page must present, and allows only this
 tool's own commands. The page loads no fonts or scripts from the network, and the one output
 that identifies people — the flagged-cohort CSV — is deliberately not servable to it.
+
+## What it cost
+
+Every run reports its own energy, because a screen exists to be the cheap alternative to a
+shadow-model audit and that is a claim with a number behind it. The meter is the GPU
+driver's own counter (NVML), read before and after every attempt — including the fail-safe's
+retries — and the boundary is the one the study used: **GPU board only, PUE 1.0**, with CPU,
+memory, storage and cooling outside it. `dataconfessor teachers` is metered the same way. A
+CPU-only run says *not metered* rather than inventing an estimate from runtime and nameplate
+power.
+
+The figures land in the summary JSON (`energy`: joules, kWh, mean watts, boundary), in the
+report, and on the page.
 
 ## What it is not
 

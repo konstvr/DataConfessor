@@ -1,23 +1,25 @@
 /* DataConfessor — a lab notebook, not a dashboard.
-   Warm paper, charcoal ink, hairline rules, one vermillion accent that means "flagged".
-   The two accents are the same pair the generated report uses, checked for protanopia,
-   deuteranopia and tritanopia (worst adjacent pair dE 21.9 light / 22.6 dark).
+   Cool slate paper, near-black ink, hairline rules, and two accents that carry meaning:
+   deep rose for "flagged", steel blue for "the check passed". Both pairs were checked for
+   protanopia, deuteranopia and tritanopia (worst adjacent pair dE 14.4 light, 14.0 dark,
+   against the >= 8 target) and for 3:1 contrast against their surface. The generated report
+   uses the same two, so a run and its report read as one thing.
    No webfonts: this page makes no network request of its own. */
 
 :root {
   color-scheme: light;
-  --paper:   #f7f5f0;
+  --paper:   #eff2f4;
   --surface: #ffffff;
-  --sunk:    #f1eee7;
-  --ink:     #1a1a19;
-  --ink-2:   #5c5c58;
-  --ink-3:   #8a8780;
-  --rule:    rgba(26, 26, 25, 0.13);
-  --rule-2:  rgba(26, 26, 25, 0.07);
-  --flag:    #d55e00;
-  --flag-wash: rgba(213, 94, 0, 0.09);
-  --pass:    #0072b2;
-  --pass-wash: rgba(0, 114, 178, 0.08);
+  --sunk:    #e6ebee;
+  --ink:     #161a1d;
+  --ink-2:   #555e66;
+  --ink-3:   #848d95;
+  --rule:    rgba(22, 26, 29, 0.14);
+  --rule-2:  rgba(22, 26, 29, 0.07);
+  --flag:    #ad2a4a;
+  --flag-wash: rgba(173, 42, 74, 0.09);
+  --pass:    #2e6e9e;
+  --pass-wash: rgba(46, 110, 158, 0.09);
   --warn:    #8a6a00;
 
   --serif: "Palatino Linotype", Palatino, "Iowan Old Style", Georgia, serif;
@@ -35,36 +37,36 @@ html[data-theme="dark"], html[data-theme="auto"] {
 @media (prefers-color-scheme: dark) {
   html[data-theme="auto"] { color-scheme: dark; }
   html[data-theme="auto"] {
-    --paper:   #141413;
-    --surface: #1c1c1a;
-    --sunk:    #111110;
-    --ink:     #ece9e2;
-    --ink-2:   #a39f97;
-    --ink-3:   #78746c;
-    --rule:    rgba(236, 233, 226, 0.15);
-    --rule-2:  rgba(236, 233, 226, 0.08);
-    --flag:    #dc6a2e;
-    --flag-wash: rgba(220, 106, 46, 0.13);
-    --pass:    #4c9bd4;
-    --pass-wash: rgba(76, 155, 212, 0.12);
+    --paper:   #13171a;
+    --surface: #1b2024;
+    --sunk:    #0f1316;
+    --ink:     #e6ebee;
+    --ink-2:   #9aa4ad;
+    --ink-3:   #6e777f;
+    --rule:    rgba(230, 235, 238, 0.16);
+    --rule-2:  rgba(230, 235, 238, 0.08);
+    --flag:    #ce4467;
+    --flag-wash: rgba(206, 68, 103, 0.15);
+    --pass:    #4f93c4;
+    --pass-wash: rgba(79, 147, 196, 0.13);
     --warn:    #c9a227;
   }
 }
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --paper:   #141413;
-  --surface: #1c1c1a;
-  --sunk:    #111110;
-  --ink:     #ece9e2;
-  --ink-2:   #a39f97;
-  --ink-3:   #78746c;
-  --rule:    rgba(236, 233, 226, 0.15);
-  --rule-2:  rgba(236, 233, 226, 0.08);
-  --flag:    #dc6a2e;
-  --flag-wash: rgba(220, 106, 46, 0.13);
-  --pass:    #4c9bd4;
-  --pass-wash: rgba(76, 155, 212, 0.12);
+  --paper:   #13171a;
+  --surface: #1b2024;
+  --sunk:    #0f1316;
+  --ink:     #e6ebee;
+  --ink-2:   #9aa4ad;
+  --ink-3:   #6e777f;
+  --rule:    rgba(230, 235, 238, 0.16);
+  --rule-2:  rgba(230, 235, 238, 0.08);
+  --flag:    #ce4467;
+  --flag-wash: rgba(206, 68, 103, 0.15);
+  --pass:    #4f93c4;
+  --pass-wash: rgba(79, 147, 196, 0.13);
   --warn:    #c9a227;
 }
 
@@ -87,7 +89,7 @@ body {
   width: 70vw;
   height: 70vh;
   pointer-events: none;
-  background: radial-gradient(45% 45% at 30% 25%, rgba(213, 94, 0, 0.07), transparent 70%);
+  background: radial-gradient(45% 45% at 30% 25%, rgba(173, 42, 74, 0.08), transparent 70%);
   opacity: 0.55;
   transition: opacity 1.2s ease;
   z-index: 0;
@@ -610,3 +612,64 @@ dialog::backdrop { background: rgba(20, 20, 19, 0.42); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ── the scanner: four lamps interrogating one record ───────────────────── */
+/*
+ * Shown only while proxies are training, and it is not decoration: each lamp lights when
+ * its quarter of the proxy budget starts, so the panel says how far along the run is
+ * without a progress bar's false precision about time.
+ */
+
+.scanner { margin: 0; display: grid; gap: 8px; justify-items: center; }
+.scanner svg { width: 100%; max-width: 320px; }
+
+.scanner .sheet rect { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.7; }
+.scanner .sheet .head { fill: var(--sunk); stroke: var(--ink-2); stroke-width: 1.7; }
+.scanner .sheet .rules { stroke: var(--rule); stroke-width: 1; fill: none; }
+
+.scanner .arm, .scanner .shade, .scanner .mount {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.4s ease;
+}
+.scanner .shade { fill: var(--surface); }
+.scanner .bulb { fill: var(--surface); stroke: var(--ink-3); stroke-width: 1.2; transition: all 0.4s ease; }
+.scanner .beam { fill: url(#beamfade); opacity: 0; transition: opacity 0.5s ease; }
+
+.scanner .lamp.on .arm,
+.scanner .lamp.on .shade,
+.scanner .lamp.on .mount { stroke: var(--ink); }
+.scanner .lamp.on .bulb { fill: var(--flag); stroke: var(--flag); }
+.scanner .lamp.on .beam { opacity: 1; animation: flicker 2.6s ease-in-out infinite; }
+.scanner .lamp[data-lamp="2"].on .beam { animation-delay: 0.4s; }
+.scanner .lamp[data-lamp="3"].on .beam { animation-delay: 0.8s; }
+.scanner .lamp[data-lamp="4"].on .beam { animation-delay: 1.2s; }
+
+@keyframes flicker {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+.scanner figcaption {
+  font: 12px var(--mono);
+  color: var(--ink-2);
+  text-align: center;
+}
+
+/* ── the report, in the app ─────────────────────────────────────────────── */
+
+#reportview {
+  width: min(1040px, 94vw);
+  max-height: 92vh;
+  height: 92vh;
+  display: none;
+  grid-template-rows: auto 1fr;
+  padding: 0;
+}
+#reportview[open] { display: grid; }
+#reportview iframe { border: 0; width: 100%; height: 100%; background: var(--surface); }
+.dialog-tools { display: flex; align-items: center; gap: 8px; }
+.dialog-tools .btn { padding: 6px 10px; font-size: 12px; }

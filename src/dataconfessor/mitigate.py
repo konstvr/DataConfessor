@@ -198,6 +198,7 @@ def teachers(
     """
     from . import models as _models
     from .data import RecordSet
+    from .energy import Meter, device_name
     from .screen import _say, fit
 
     progress = progress or _say
@@ -232,23 +233,26 @@ def teachers(
     is_flagged_record = np.isin(codes, flagged_codes)
 
     probs = np.zeros((len(records), man.num_classes), dtype=np.float32)
-    for t, in_mask in enumerate((side_a, ~side_a)):
-        progress(f"  teacher {t + 1}/2 ({int(in_mask.sum()):,} records, {epochs} epochs)")
-        model = fit(records, np.flatnonzero(in_mask), arch=arch, pretrained=bool(pretrained),
-                    epochs=epochs, lr=lr, seed=seed + t, device=dev)
-        # Score only the records this teacher did NOT train on and which are flagged.
-        targets = np.flatnonzero(~in_mask & is_flagged_record)
-        with torch.no_grad():
-            for start in range(0, len(targets), 128):
-                idx = targets[start:start + 128]
-                x, _ = records.batch(idx)
-                logits = model(x).float()
-                p = (torch.sigmoid(logits) if man.is_multilabel
-                     else torch.softmax(logits, dim=1))
-                probs[idx] = p.cpu().numpy()
-        del model
-        if dev.type == "cuda":
-            torch.cuda.empty_cache()
+    with Meter(str(dev)) as meter:
+        for t, in_mask in enumerate((side_a, ~side_a)):
+            progress(f"  teacher {t + 1}/2 ({int(in_mask.sum()):,} records, {epochs} epochs)")
+            model = fit(records, np.flatnonzero(in_mask), arch=arch,
+                        pretrained=bool(pretrained), epochs=epochs, lr=lr, seed=seed + t,
+                        device=dev)
+            # Score only the records this teacher did NOT train on and which are flagged.
+            targets = np.flatnonzero(~in_mask & is_flagged_record)
+            with torch.no_grad():
+                for start in range(0, len(targets), 128):
+                    idx = targets[start:start + 128]
+                    x, _ = records.batch(idx)
+                    logits = model(x).float()
+                    p = (torch.sigmoid(logits) if man.is_multilabel
+                         else torch.softmax(logits, dim=1))
+                    probs[idx] = p.cpu().numpy()
+            del model
+            if dev.type == "cuda":
+                torch.cuda.empty_cache()
+    progress(f"  two teachers trained: {meter.result.text()}")
 
     out_path = Path(out_path)
     rows = np.flatnonzero(is_flagged_record)
@@ -265,6 +269,8 @@ def teachers(
         "n_flagged_patients": int(len(flagged_codes)),
         "teacher_epochs": epochs,
         "teacher_arch": arch,
+        "device": device_name(str(dev)),
+        "energy": meter.result.as_dict(),
         "sensitive": "This file lists the flagged records by path. Keep it local.",
         "how_to_use": "In your training loop, for a record whose path is in this file, "
                       "replace the one-hot target with its soft_label row and keep every "

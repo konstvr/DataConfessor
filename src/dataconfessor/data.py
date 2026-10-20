@@ -72,9 +72,12 @@ def _load_hook(spec: str) -> Callable[[Path], np.ndarray]:
     reader of its own. The function takes a path and returns a float32 array shaped like the
     other records -- (H, W) or (H, W, C) for images, (C, T) for signals.
     """
-    file, _, func = spec.partition(":")
-    if not func:
-        raise ValueError(f"--loader must be 'path/to/file.py:function', got {spec!r}")
+    # Split on the LAST colon: an absolute Windows path starts with one ("D:/data/x.py").
+    file, sep, func = spec.rpartition(":")
+    if not sep or not file or not file.lower().endswith(".py"):
+        raise ValueError(
+            f"--loader must be 'path/to/file.py:function', got {spec!r}"
+        )
     mod_spec = importlib.util.spec_from_file_location("dataconfessor_loader", file)
     if mod_spec is None or mod_spec.loader is None:
         raise ImportError(f"cannot import {file}")

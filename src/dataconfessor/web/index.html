@@ -103,9 +103,10 @@
           <h2><span class="step-n">1</span> Point at the data</h2>
           <div class="step-body">
             <label>Folder of images or records
+              <span class="hint">or a manifest.csv you already have</span>
               <span class="with-button">
                 <input id="data-dir" spellcheck="false" placeholder="D:\data\derm\images">
-                <button class="btn btn-quiet" type="button" data-browse="data-dir">Browse</button>
+                <button class="btn btn-quiet" type="button" data-browse="data-dir" data-files="1">Browse</button>
               </span>
             </label>
             <label>Labels CSV <span class="hint">optional — without it, the folder name is the label</span>
@@ -120,6 +121,16 @@
               <label>Patient column<select id="col-patient"><option value="">auto</option></select></label>
             </div>
             <p class="note" id="patient-warning"></p>
+            <details class="advanced">
+              <summary>Records this tool cannot read by itself</summary>
+              <div class="provider-grid">
+                <label>Loader <span class="hint">file.py:function</span>
+                  <input id="loader" spellcheck="false" placeholder="loaders/ptbxl_loader.py:load"></label>
+                <label>Record kind
+                  <select id="kind"><option value="">from the file type</option>
+                  <option value="image">image</option><option value="signal">signal</option></select></label>
+              </div>
+            </details>
             <button class="btn btn-primary" id="do-init" type="button">Build the manifest</button>
           </div>
         </li>
@@ -147,16 +158,6 @@
               <label>Proxy models<select id="models"><option>4</option><option>8</option><option>16</option></select></label>
               <label>Device<select id="device"><option value="">auto</option><option value="cuda">cuda</option><option value="cpu">cpu</option></select></label>
             </div>
-            <details class="advanced">
-              <summary>Records this tool cannot read by itself</summary>
-              <div class="provider-grid">
-                <label>Loader <span class="hint">file.py:function</span>
-                  <input id="loader" spellcheck="false" placeholder="loaders/ptbxl_loader.py:load"></label>
-                <label>Record kind
-                  <select id="kind"><option value="">from the file type</option>
-                  <option value="image">image</option><option value="signal">signal</option></select></label>
-              </div>
-            </details>
             <button class="btn btn-primary" id="do-screen" type="button">Run the screen</button>
           </div>
         </li>
@@ -178,6 +179,57 @@
         ranks everyone by how badly the models that never saw them predict them.
       </p>
     </div>
+
+    <!-- shown only while proxies are training: four lamps, one per quarter of the budget -->
+    <figure class="scanner is-hidden" id="scanner">
+      <!-- One lamp is drawn, at the top left; the other three are the same shape mirrored
+           about the centre of the record, so all four stay identical. -->
+      <svg viewBox="0 0 240 160" aria-hidden="true">
+        <defs>
+          <linearGradient id="beamfade" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--flag)" stop-opacity="0.42"/>
+            <stop offset="100%" stop-color="var(--flag)" stop-opacity="0.04"/>
+          </linearGradient>
+        </defs>
+
+        <g class="lamp" data-lamp="1">
+          <path class="beam" d="M47 31 L112 57 L84 98 L33 45 Z"/>
+          <path class="arm" d="M14 44l6-18 14-6"/>
+          <path class="mount" d="M8 46h14"/>
+          <path class="shade" d="M28 16 L50 30 L35 47 L21 29 Z"/>
+          <circle class="bulb" cx="41" cy="37" r="2.6"/>
+        </g>
+        <g class="lamp" data-lamp="2" transform="translate(240,0) scale(-1,1)">
+          <path class="beam" d="M47 31 L112 57 L84 98 L33 45 Z"/>
+          <path class="arm" d="M14 44l6-18 14-6"/>
+          <path class="mount" d="M8 46h14"/>
+          <path class="shade" d="M28 16 L50 30 L35 47 L21 29 Z"/>
+          <circle class="bulb" cx="41" cy="37" r="2.6"/>
+        </g>
+        <g class="lamp" data-lamp="3" transform="translate(0,160) scale(1,-1)">
+          <path class="beam" d="M47 31 L112 57 L84 98 L33 45 Z"/>
+          <path class="arm" d="M14 44l6-18 14-6"/>
+          <path class="mount" d="M8 46h14"/>
+          <path class="shade" d="M28 16 L50 30 L35 47 L21 29 Z"/>
+          <circle class="bulb" cx="41" cy="37" r="2.6"/>
+        </g>
+        <g class="lamp" data-lamp="4" transform="translate(240,160) scale(-1,-1)">
+          <path class="beam" d="M47 31 L112 57 L84 98 L33 45 Z"/>
+          <path class="arm" d="M14 44l6-18 14-6"/>
+          <path class="mount" d="M8 46h14"/>
+          <path class="shade" d="M28 16 L50 30 L35 47 L21 29 Z"/>
+          <circle class="bulb" cx="41" cy="37" r="2.6"/>
+        </g>
+        <!-- the record, painted over the beams so the light stops at it -->
+        <g class="sheet">
+          <rect x="90" y="54" width="60" height="52" rx="2"/>
+          <path class="head" d="M90 54h60v9H90z"/>
+          <path class="rules" d="M90 72h60M90 83h60M90 94h60M110 63v43M130 63v43"/>
+        </g>
+
+      </svg>
+      <figcaption id="scanner-note">training the proxy models…</figcaption>
+    </figure>
 
     <div class="cohort-grid" id="grid-wrap">
       <div class="grid" id="grid" aria-hidden="true"></div>
@@ -218,6 +270,17 @@
     <button class="btn btn-quiet" id="browser-up" type="button">Up one level</button>
     <button class="btn btn-primary" id="browser-pick" type="button">Use this folder</button>
   </div>
+</dialog>
+
+<dialog id="reportview">
+  <form method="dialog" class="dialog-head">
+    <h3>Screen report</h3>
+    <span class="dialog-tools">
+      <a id="report-newtab" href="#" target="_blank" rel="noopener" class="btn btn-quiet">Open in a tab</a>
+      <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+    </span>
+  </form>
+  <iframe id="report-frame" title="Screen report" src="about:blank"></iframe>
 </dialog>
 
 <dialog id="help">

@@ -86,11 +86,13 @@ function run(cmd, onLine) {
       const { kind, data } = JSON.parse(ev.data);
       if (kind === "line") {
         lines.push(data);
+        trackProgress(data);
         onLine ? onLine(data) : logLine(data, /ERROR|\*\*/.test(data));
       } else if (kind === "exit") {
         source.close();
         state.job = null;
         document.body.classList.remove("is-running");
+        showScanner(false);
         resolve({ exit: Number(data), text: lines.join("\n") });
       }
     };
@@ -98,8 +100,48 @@ function run(cmd, onLine) {
       source.close();
       state.job = null;
       document.body.classList.remove("is-running");
+      showScanner(false);
       reject(new Error("the connection to the run was lost"));
     };
+  });
+}
+
+/* ── the scanner ────────────────────────────────────────────────────────── */
+
+/** Light one lamp per quarter of the proxy budget, from the tool's own progress lines.
+ *  It is a progress indicator that cannot lie about time: it reports which proxy is
+ *  training, not a guess at how long is left. */
+function trackProgress(line) {
+  let m;
+  if ((m = line.match(/proxy (\d+)\/(\d+) at (\d+) epoch/))) {
+    const k = Number(m[1]), n = Number(m[2]), ep = Number(m[3]);
+    showScanner(true);
+    setLamps(Math.ceil((k / n) * 4));
+    $("scanner-note").textContent = `proxy ${k} of ${n}, ${ep} epoch${ep > 1 ? "s" : ""} each`;
+  } else if ((m = line.match(/teacher (\d+)\/(\d+)/))) {
+    showScanner(true);
+    setLamps(Math.ceil((Number(m[1]) / Number(m[2])) * 4));
+    $("scanner-note").textContent = `teacher ${m[1]} of ${m[2]}`;
+  } else if (/caching records/.test(line)) {
+    showScanner(true);
+    setLamps(0);
+    $("scanner-note").textContent = line.trim();
+  } else if (/records into memory/.test(line)) {
+    $("scanner-note").textContent = line.trim();
+  } else if (/is below the .* floor/.test(line)) {
+    setLamps(0);
+    $("scanner-note").textContent = "the check failed — retraining the proxies for longer";
+  }
+}
+
+function showScanner(on) {
+  $("scanner").classList.toggle("is-hidden", !on);
+  if (!on) setLamps(0);
+}
+
+function setLamps(count) {
+  document.querySelectorAll(".scanner .lamp").forEach((lamp) => {
+    lamp.classList.toggle("on", Number(lamp.dataset.lamp) <= count);
   });
 }
 
@@ -126,6 +168,7 @@ function readScreen(text) {
   if ((m = text.match(/([\d.]+) minutes/))) out.minutes = m[1];
   if ((m = text.match(/([\d.]+) kWh/))) out.energy = m[1] + " kWh";
   else if ((m = text.match(/([\d.]+) kJ/))) out.energy = m[1] + " kJ";
+  else if (/energy not metered/.test(text)) out.energy = "not metered here";
   return out;
 }
 
@@ -157,7 +200,8 @@ function paintResult(r) {
     ["Self-consistency", r.consistency != null ? r.consistency.toFixed(3) : "—"],
     ...(r.ladder ? [["Fail-safe", r.ladder]] : []),
     ["Proxies", r.arch ? `${r.arch} × ${r.epochs} epoch(s)` : "—"],
-    ["Cost", [r.minutes && `${r.minutes} min`, r.energy].filter(Boolean).join(" · ") || "—"],
+    ["Compute", r.minutes ? `${r.minutes} min` : "—"],
+    ["Energy", r.energy || "—"],
   ];
   for (const [k, v] of rows) {
     stats.appendChild(el("dt", null, k));
@@ -187,11 +231,14 @@ function showArtifacts() {
   const box = $("artifacts");
   box.innerHTML = "";
   if (state.reportHtml) {
-    const a = el("a", "artifact", "Open the report");
-    a.href = `/api/file?path=${encodeURIComponent(state.reportHtml)}&t=${TOKEN}`;
-    a.target = "_blank";
-    a.rel = "noopener";
-    box.appendChild(a);
+    const url = `/api/file?path=${encodeURIComponent(state.reportHtml)}&t=${TOKEN}`;
+    const open = el("button", "artifact", "Read the report");
+    open.onclick = () => {
+      $("report-frame").src = url;
+      $("report-newtab").href = url;
+      $("reportview").showModal();
+    };
+    box.appendChild(open);
   }
   if (state.summaryJson) {
     const a = el("a", "artifact", "Summary JSON");
@@ -275,6 +322,7 @@ $("browser-up").onclick = async () => {
   if (data.parent) paintBrowser(data.parent);
 };
 $("browser-pick").onclick = () => pick(browsePath);
+$("reportview").addEventListener("close", () => ($("report-frame").src = "about:blank"));
 
 /* ── manual mode ────────────────────────────────────────────────────────── */
 
@@ -342,6 +390,14 @@ $("do-init").onclick = () =>
   guard($("do-init"), async () => {
     const dir = $("data-dir").value.trim();
     if (!dir) throw new Error("choose the folder that holds the records first");
+    // Someone who already has a manifest -- written by hand, or by a script for a dataset
+    // this tool cannot crawl, like PTB-XL -- should not be made to rebuild it.
+    if (/\.csv$/i.test(dir)) {
+      state.manifest = dir;
+      logLine(`using the manifest at ${dir}`);
+      openStep(2);
+      return;
+    }
     state.manifest = `${state.workdir}${SEP}manifest.csv`;
     let cmd = `dataconfessor init ${quote(dir)} --out ${quote(state.manifest)}`;
     const csv = $("labels-csv").value.trim();

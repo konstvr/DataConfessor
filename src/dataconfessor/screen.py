@@ -24,7 +24,6 @@ who is not flagged is not certified safe.
 from __future__ import annotations
 
 import json
-import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -34,6 +33,7 @@ import torch
 import torch.nn as nn
 
 from .data import RecordSet
+from .energy import Energy, Meter, total as total_energy
 from .manifest import Manifest
 from . import models as _models
 
@@ -180,6 +180,11 @@ class ScreenResult:
     _PATIENT_LEVEL = ("patient_names", "patient_atypicality", "percentile", "flagged")
 
     @property
+    def energy(self) -> Energy:
+        """What the whole screen cost, retries included."""
+        return Energy(self.gpu_seconds, self.gpu_joules, self.device)
+
+    @property
     def n_flagged(self) -> int:
         return int(sum(self.flagged))
 
@@ -218,6 +223,7 @@ class ScreenResult:
         d["epochs_used"] = self.epochs
         d["gpu_minutes"] = round(self.gpu_seconds / 60, 2)
         d["gpu_kwh"] = round(self.gpu_joules / 3.6e6, 6) if self.gpu_joules else None
+        d["energy"] = self.energy.as_dict()
         d["patient_detail_written_to"] = patients_path
         d["patient_detail_warning"] = (
             "The flagged cohort identifies individuals by privacy risk and is NOT in this "
@@ -258,7 +264,7 @@ class ScreenResult:
             f"screened {self.n_patients:,} {unit} / {self.n_records:,} records",
             f"  {self.n_models} proxy models x {self.epochs} epoch(s) of {self.arch}"
             f"{' (ImageNet init)' if self.pretrained else ' (from scratch)'} on {self.device}, "
-            f"{self.gpu_seconds / 60:.1f} minutes" + _energy_text(self.gpu_joules),
+            f"{self.energy.text()}",
             f"  flagged {self.n_flagged:,} {unit} ({self.flag_fraction:.0%})",
         ]
         if len(self.attempts) > 1:
@@ -298,33 +304,6 @@ def _say(message: str) -> None:
     """Progress, flushed: stdout is block-buffered when redirected to a file, and a screen
     that prints nothing for twenty minutes looks hung."""
     print(message, flush=True)
-
-
-def _energy_text(joules: float | None) -> str:
-    """GPU energy in whichever unit does not read as zero."""
-    if not joules:
-        return ""
-    kwh = joules / 3.6e6
-    return f", {kwh:.4f} kWh" if kwh >= 1e-4 else f", {joules / 1000:.1f} kJ"
-
-
-def _nvml_joules() -> Callable[[], float | None]:
-    """Cumulative GPU board energy, or a reader that returns None where unavailable."""
-    try:
-        import pynvml
-
-        pynvml.nvmlInit()
-        handle = pynvml.nvmlDeviceGetHandleByIndex(torch.cuda.current_device())
-
-        def read() -> float | None:
-            try:
-                return pynvml.nvmlDeviceGetTotalEnergyConsumption(handle) / 1000.0
-            except Exception:
-                return None
-
-        return read
-    except Exception:
-        return lambda: None
 
 
 def fit(
@@ -471,29 +450,24 @@ def run(
     lr = 1e-4 if pretrained else 1e-3
 
     membership = complementary_membership(man.patient_codes, n_models, seed)
-    read_joules = _nvml_joules() if dev.type == "cuda" else (lambda: None)
-
     plan = escalation(epochs, max_epochs)
     attempts: list[Attempt] = []
     scores = np.zeros((n_models, len(records)), dtype=np.float64)
     self_consistency = float("nan")
 
     for attempt_no, attempt_epochs in enumerate(plan, start=1):
-        j0 = read_joules()
-        t0 = time.perf_counter()
-        for i in range(n_models):
-            progress(f"  proxy {i + 1}/{n_models} at {attempt_epochs} epoch(s) "
-                     f"({int(membership[i].sum()):,} records)")
-            scores[i] = _train_one(
-                records, np.flatnonzero(membership[i]), arch=arch, pretrained=pretrained,
-                epochs=attempt_epochs, lr=lr, seed=seed + i, device=dev,
-            )
-        elapsed = time.perf_counter() - t0
-        j1 = read_joules()
+        with Meter(str(dev)) as meter:
+            for i in range(n_models):
+                progress(f"  proxy {i + 1}/{n_models} at {attempt_epochs} epoch(s) "
+                         f"({int(membership[i].sum()):,} records)")
+                scores[i] = _train_one(
+                    records, np.flatnonzero(membership[i]), arch=arch, pretrained=pretrained,
+                    epochs=attempt_epochs, lr=lr, seed=seed + i, device=dev,
+                )
         self_consistency = _self_consistency(scores, membership, man.patient_codes, n_models)
         attempts.append(Attempt(
-            epochs=attempt_epochs, self_consistency=self_consistency, gpu_seconds=elapsed,
-            gpu_joules=(j1 - j0) if (j0 is not None and j1 is not None) else None,
+            epochs=attempt_epochs, self_consistency=self_consistency,
+            gpu_seconds=meter.result.seconds, gpu_joules=meter.result.joules,
         ))
 
         if attempts[-1].passed:
@@ -515,9 +489,10 @@ def run(
             )
 
     epochs_used = attempts[-1].epochs
-    gpu_seconds = float(sum(a.gpu_seconds for a in attempts))
-    joules = (None if any(a.gpu_joules is None for a in attempts)
-              else float(sum(a.gpu_joules for a in attempts)))
+    spent = total_energy(
+        Energy(a.gpu_seconds, a.gpu_joules, str(dev)) for a in attempts
+    )
+    gpu_seconds, joules = spent.seconds, spent.joules
 
     _, patient_atyp = atypicality(scores, membership, man.patient_codes)
     valid = np.isfinite(patient_atyp)

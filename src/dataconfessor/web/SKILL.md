@@ -131,7 +131,11 @@ as if they had passed.
 
 Give the user:
 
-- patients screened and flagged, and the proxy budget (models × epochs) and minutes;
+- patients screened and flagged, and the proxy budget (models × epochs);
+- what it cost: minutes, and energy in kWh when the run was on a GPU. Say what the figure
+  covers — GPU board only, measured with the driver's own counter, nothing else in the
+  boundary. On a CPU there is no counter, so report the time and say the energy was not
+  measured rather than estimating it;
 - the self-consistency value and the verdict (`passed`, `passed_after_retry` or
   `below_floor`), and, if the fail-safe retried, the epoch budget it settled on;
 - the path of `screen_report.html` (figures, no identifiers) and of the patient CSV
