@@ -70,9 +70,12 @@
           </label>
         </div>
         <p class="note">
-          The key stays in this browser tab and is sent only to the provider you picked, with
-          the request you asked for. It is never written to disk. For a dataset that may not
-          leave the building, point this at a local Ollama and nothing goes out at all.
+          The key stays in this browser tab and is sent only to the provider you picked; it is
+          not written to disk. A local Ollama (Base URL <code>http://localhost:11434</code>)
+          needs no key and keeps the conversation on this machine. A hosted provider, Ollama
+          Cloud included, receives what the assistant sends it: dataset paths, the commands it
+          runs and their aggregate output. Records and the flagged-patient list are not part
+          of that.
         </p>
       </details>
 
