@@ -12,15 +12,57 @@ own model. DataConfessor measures the other half of the problem instead: *which*
 are at risk is a property of the data, so it can be screened during pre-processing, in
 minutes, on four throwaway models, before a production model exists.
 
+## Install
+
 ```bash
 pip install git+https://github.com/konstvr/DataConfessor.git
+```
+
+Python 3.10 or newer. From a clone, `pip install .` does the same, and `pip install -e .[dev]`
+if you mean to change it. The only requirements are PyTorch and the usual scientific stack,
+which pip pulls in: a fresh virtual environment installs in one command and needs no CUDA —
+a GPU makes a screen minutes instead of an hour, it is not required.
+
+```bash
+dataconfessor --version
+```
+
+## Use it with an AI assistant
+
+The repository is also a Claude Code plugin, so an assistant can run the whole screen from a
+sentence — including working out how your dataset maps onto the manifest:
+
+```
+/plugin marketplace add konstvr/DataConfessor
+/plugin install dataconfessor@dataconfessor
+```
+
+```
+/dataconfessor my dataset is at /data/derm, labels are in metadata.csv
+```
+
+Other ways in, for other tools:
+
+| | |
+|---|---|
+| any Claude Code project | `cp -r skills/dataconfessor ~/.claude/skills/` |
+| claude.ai or the API | zip `skills/dataconfessor/` and upload it as an Agent Skill |
+| any other agent | point it at `skills/dataconfessor/SKILL.md` — it is plain Markdown |
+
+The pip package carries its own copy of the skill, so `dataconfessor ui` can hand it to a
+model with no checkout present.
+
+The skill tells the assistant how to map an unfamiliar dataset onto the manifest, how to read
+the self-consistency verdict, what to do when it fails, and — importantly — not to open the
+flagged cohort or the records themselves. An open 31B model followed it end to end with no
+violations; see `VALIDATION.md`.
+
+## Or run it yourself
+
+```bash
 dataconfessor init  /data/images --labels-csv /data/labels.csv --out manifest.csv
 dataconfessor screen manifest.csv --patients flagged.csv --report report.html
 ```
-
-<sup>Python 3.10+. From a clone, `pip install .` does the same; `pip install -e .[dev]` if you
-mean to change it. The only requirements are PyTorch and the usual scientific stack, which
-pip pulls in — a fresh virtual environment installs in one command and needs no CUDA.</sup>
 
 ```
 screened 2,056 patients / 33,126 records
@@ -34,6 +76,27 @@ screened 2,056 patients / 33,126 records
 <sup>Real output: ISIC-2020, one Quadro RTX 5000. All 411 flagged patients were melanoma
 patients, and they held 561 of the 584 melanoma images in the archive.</sup>
 
+## Or run it in a browser
+
+```bash
+dataconfessor ui
+```
+
+<p align="center"><img src="assets/screenshot.png" alt="The DataConfessor interface: three
+steps on the left, the self-consistency verdict and the flagged share on the right" width="860"></p>
+
+One command opens a local page with two ways in: **ask an assistant** — your own model key,
+or a local Ollama so that nothing leaves the building — or **do it yourself**, three steps
+with a folder picker and no commands to type. Both end in the same place: the verdict, the
+flagged share of the cohort, and the report.
+
+While a screen runs, four lamps light one by one as the proxies train, and the finished
+report opens inside the page rather than as a loose file on disk.
+
+The server binds `127.0.0.1`, holds a token the page must present, and allows only this
+tool's own commands. The page loads no fonts or scripts from the network, and the one output
+that identifies people — the flagged-cohort CSV — is deliberately not servable to it.
+
 ## What it is
 
 The screen trains four small models for one epoch each on complementary halves of your
@@ -46,40 +109,6 @@ In the study behind this tool — more than 7,000 models over six clinical datas
 modalities — that flag rate recovered **65–96%** of the patients a full membership-inference
 audit placed in the top-5% risk tail, 3.2–4.8 times random flagging, in 1.4–7.4 GPU-minutes
 and 37–1,200 times less energy than the audit it replaces.
-
-## Or run it in a browser
-
-```bash
-dataconfessor ui
-```
-
-<p align="center"><img src="assets/screenshot.png" alt="The DataConfessor interface: three
-steps on the left, the self-consistency verdict and the flagged share on the right" width="860"></p>
-
-One command opens a local page with two ways in: **ask an assistant** — your own model key,
-or a local Ollama so that nothing leaves the building — or **do it yourself**, three steps
-with a folder picker and no commands to type. Both end in the same place: the gate verdict,
-the flagged share of the cohort, and the report.
-
-While a screen runs, four lamps light one by one as the proxies train, and the finished
-report opens inside the page rather than as a loose file on disk.
-
-The server binds `127.0.0.1`, holds a token the page must present, and allows only this
-tool's own commands. The page loads no fonts or scripts from the network, and the one output
-that identifies people — the flagged-cohort CSV — is deliberately not servable to it.
-
-## What it cost
-
-Every run reports its own energy, because a screen exists to be the cheap alternative to a
-shadow-model audit and that is a claim with a number behind it. The meter is the GPU
-driver's own counter (NVML), read before and after every attempt — including the fail-safe's
-retries — and the boundary is the one the study used: **GPU board only, PUE 1.0**, with CPU,
-memory, storage and cooling outside it. `dataconfessor teachers` is metered the same way. A
-CPU-only run says *not metered* rather than inventing an estimate from runtime and nameplate
-power.
-
-The figures land in the summary JSON (`energy`: joules, kWh, mean watts, boundary), in the
-report, and on the page.
 
 ## What it is not
 
@@ -153,6 +182,19 @@ The exit code stays 0 because the flags were delivered; `--strict` makes `below_
 Clearing the floor is a necessary condition, not an optimum: the fail-safe stops at the
 first budget that passes, not at the one that ranks best.
 
+## What it cost
+
+Every run reports its own energy, because a screen exists to be the cheap alternative to a
+shadow-model audit and that is a claim with a number behind it. The meter is the GPU
+driver's own counter (NVML), read before and after every attempt — including the fail-safe's
+retries — and the boundary is the one the study used: **GPU board only, PUE 1.0**, with CPU,
+memory, storage and cooling outside it. `dataconfessor teachers` is metered the same way. A
+CPU-only run says *not metered* rather than inventing an estimate from runtime and nameplate
+power.
+
+The figures land in the summary JSON (`energy`: joules, kWh, mean watts, boundary), in the
+report, and on the page.
+
 ## Commands
 
 | | |
@@ -168,36 +210,6 @@ Two outputs, deliberately separated: `--out` is aggregate-only JSON, safe to log
 hand to an AI assistant; `--patients` is the flagged cohort, which identifies individuals by
 privacy risk and stays on your machine. `--report` is a single self-contained HTML file with
 three diagnostic panels and no identifiers.
-
-## With an AI assistant
-
-The repo is also a Claude Code plugin, so an assistant can run the whole screen from a
-sentence:
-
-```
-/plugin marketplace add konstvr/DataConfessor
-/plugin install dataconfessor@dataconfessor
-```
-
-```
-/dataconfessor my dataset is at /data/derm, labels are in metadata.csv
-```
-
-Other ways in, for other tools:
-
-| | |
-|---|---|
-| any Claude Code project | `cp -r skills/dataconfessor ~/.claude/skills/` |
-| claude.ai or the API | zip `skills/dataconfessor/` and upload it as an Agent Skill |
-| any other agent | point it at `skills/dataconfessor/SKILL.md` — it is plain Markdown |
-
-The pip package carries its own copy of the skill, so `dataconfessor ui` can hand it to
-a model with no checkout present.
-
-The skill tells the assistant how to map an unfamiliar dataset onto the manifest, how to
-read the gate, how to escalate when it fails, and — importantly — not to open the flagged
-cohort or the records themselves. An open 31B model followed it end to end with no
-violations; see `VALIDATION.md`.
 
 ## After the screen: protecting the flagged patients
 
@@ -218,4 +230,6 @@ leakage, so it complements differential privacy rather than replacing it.
 > Vrettos, K., Tzanis, E., Kondylakis, H., Vassalou, E. E., Doo, F. X. & Klontzas, M. E.
 > *Predicting and mitigating privacy risks in medical AI.*
 
-See `CITATION.cff`. MIT licensed.
+See `CITATION.cff`. Licensed under Apache-2.0 (`LICENSE`, `NOTICE`): free to use, modify and
+redistribute, including commercially, with an explicit patent grant from the contributors and
+attribution kept intact.

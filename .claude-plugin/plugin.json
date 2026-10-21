@@ -7,6 +7,6 @@
   },
   "homepage": "https://github.com/konstvr/DataConfessor",
   "repository": "https://github.com/konstvr/DataConfessor",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": ["privacy", "membership-inference", "medical-imaging", "machine-learning", "audit"]
 }

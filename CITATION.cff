@@ -6,7 +6,7 @@ abstract: >-
   A pre-training privacy screen for medical datasets. Ranks patients by atypicality
   using four throwaway proxy models and flags those most likely to be exposed by
   membership inference, before a production model is trained.
-license: MIT
+license: Apache-2.0
 authors:
   - family-names: Vrettos
     given-names: Konstantinos
