@@ -29,8 +29,9 @@ exists. Four proxy models, one epoch each, minutes on one GPU.
 dataconfessor --version
 ```
 
-If that fails, install it: `pip install dataconfessor`, or `pip install -e .` from a
-checkout of the repository. It needs PyTorch; a GPU makes it minutes instead of an hour.
+If that fails, install it:
+`pip install git+https://github.com/konstvr/DataConfessor.git`, or `pip install .` from a
+clone. It needs PyTorch; a GPU makes it minutes instead of an hour.
 
 ## Step 2 — find out what the dataset looks like
 

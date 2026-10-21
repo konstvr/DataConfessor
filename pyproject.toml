@@ -35,7 +35,8 @@ dev = ["pytest>=7.0"]
 dataconfessor = "dataconfessor.cli:main"
 
 [project.urls]
-Source = "https://github.com/ATI-Lab/DataConfessor"
+Source = "https://github.com/konstvr/DataConfessor"
+Issues = "https://github.com/konstvr/DataConfessor/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

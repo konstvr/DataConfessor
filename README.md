@@ -13,10 +13,14 @@ are at risk is a property of the data, so it can be screened during pre-processi
 minutes, on four throwaway models, before a production model exists.
 
 ```bash
-pip install dataconfessor
+pip install git+https://github.com/konstvr/DataConfessor.git
 dataconfessor init  /data/images --labels-csv /data/labels.csv --out manifest.csv
 dataconfessor screen manifest.csv --patients flagged.csv --report report.html
 ```
+
+<sup>Python 3.10+. From a clone, `pip install .` does the same; `pip install -e .[dev]` if you
+mean to change it. The only requirements are PyTorch and the usual scientific stack, which
+pip pulls in — a fresh virtual environment installs in one command and needs no CUDA.</sup>
 
 ```
 screened 2,056 patients / 33,126 records
@@ -171,7 +175,7 @@ The repo is also a Claude Code plugin, so an assistant can run the whole screen 
 sentence:
 
 ```
-/plugin marketplace add ATI-Lab/DataConfessor
+/plugin marketplace add konstvr/DataConfessor
 /plugin install dataconfessor@dataconfessor
 ```
 

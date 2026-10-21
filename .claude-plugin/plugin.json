@@ -5,8 +5,8 @@
   "author": {
     "name": "ATI Lab, University of Crete"
   },
-  "homepage": "https://github.com/ATI-Lab/DataConfessor",
-  "repository": "https://github.com/ATI-Lab/DataConfessor",
+  "homepage": "https://github.com/konstvr/DataConfessor",
+  "repository": "https://github.com/konstvr/DataConfessor",
   "license": "MIT",
   "keywords": ["privacy", "membership-inference", "medical-imaging", "machine-learning", "audit"]
 }
