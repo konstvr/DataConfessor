@@ -23,25 +23,25 @@ than one that did not, and a patient's risk is the maximum over their records.
 | Four models are enough | 4 models recover 95–97% of the 128-model effect; one epoch recovers 89–98% |
 | The proxy need not match | a ~25k-parameter SmallCNN predicted a ResNet-50's tail at 81% of the ResNet-50's own effect |
 
-## Recall, and what "65–96%" means
+## Recall, and what "73–100%" means
 
 One screen per dataset was run end to end and scored against the top-5% most exposed
-patients of every audited recipe that passed the canary control. At a 20% flag rate, recall
-of that tail was:
+patients of every audited recipe that passed the canary control, with the planted control
+records themselves excluded from the tail. At a 20% flag rate, recall of that tail against
+each dataset's reference recipe was:
 
-| Dataset | Reference recipe | Lift over random |
+| Dataset | Recall | Lift over random |
 |---|---|---|
-| ISIC-2020 (224 px) | 70.9% | 3.5x |
-| ISIC-2020 (512 px) | 79.6% | 4.0x |
-| NIH-CXR14 | 69.6% | 3.5x |
-| CheXpert | 67.9% | 3.4x |
-| PTB-XL | 64.7% | 3.2x |
-| SCOPE-MRI (5-epoch proxies) | 96.3% | 4.8x |
+| ISIC-2020 | 100.0% | 5.0x |
+| NIH-CXR14 | 91.5% | 4.6x |
+| CheXpert | 75.2% | 3.8x |
+| PTB-XL | 72.7% | 3.6x |
+| SCOPE-MRI (5-epoch proxies) | 100% (27/27, 95% CI 87–100) | 5.0x |
 
-Flags transferred to recipes the screen had never seen (different weight decay,
-normalisation or architecture) at 54–74%, against 66–93% for a reseeded run of the same
-recipe. Screening cost 1.4–7.4 GPU-minutes and 0.0015–0.085 kWh, 37–1,200 times less energy
-than a full audit of the same model.
+A reseeded run of the same recipe recovered 73–100%. Flags transferred to recipes the screen
+had never seen — different weight decay, normalisation or architecture — at **65–100%**, the
+low end being group normalisation on PTB-XL. Screening cost 1.4–7.4 GPU-minutes and
+0.0015–0.085 kWh, 37–1,200 times less energy than a full audit of the same model.
 
 **These are other datasets' numbers.** A screen on a new dataset has no ground truth, so its
 own recall is unknown. Quote the range as prior experience, never as this run's performance.

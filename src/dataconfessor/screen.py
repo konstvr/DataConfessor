@@ -51,8 +51,8 @@ reached 0.90. Five is therefore the top of the ladder and the default ceiling: b
 screen stops being cheap, which is the property that makes it worth running at all."""
 DEFAULT_FLAG_FRACTION = 0.20
 """The operating point the source study calibrated: flagging 20% of patients recovered
-65-96% of the tail a full audit found (3.2-4.8x random flagging) across six dataset-recipe
-combinations. Tighter flag rates were not prospectively calibrated."""
+73-100% of the tail a full audit found (3.6-5x random flagging) across the five datasets
+with patient identifiers. Tighter flag rates were not prospectively calibrated."""
 
 SELF_CONSISTENCY_FLOOR = 0.70
 """Split-half rank agreement below which the flags must not be used.
@@ -294,8 +294,8 @@ class ScreenResult:
                 f"anything -- it does NOT predict recall."
             )
         lines.append(
-            "  NOT a leakage measurement. In the source study this flag rate recovered 65-96% "
-            "of the tail a full audit found; unflagged does not mean safe."
+            "  NOT a leakage measurement. In the source study this flag rate recovered "
+            "73-100% of the tail a full audit found; unflagged does not mean safe."
         )
         return "\n".join(lines)
 

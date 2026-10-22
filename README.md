@@ -12,8 +12,9 @@ fact. DataConfessor works the other way round: *which* patients are at risk is a
 the data, so privacy risk can be screened during pre-processing
 
 In the study behind the tool (more than 7,700 models, six clinical datasets, four
-modalities), DataConfessor identified 65–96% of the patients that a full membership-inference
-audit placed in the top-5% risk tail, in few GPU-minutes. It is a ranking and an unflagged patient is not certified safe.
+modalities), DataConfessor identified 73–100% of the patients that a full membership-inference
+audit placed in the top-5% risk tail — 3.6–5x random flagging — in few GPU-minutes. It is
+a ranking and an unflagged patient is not certified safe.
 
 ## Install
 
@@ -145,6 +146,15 @@ prediction of the teacher that never saw each flagged record, to train that reco
 label instead of its own. In the study this lowered flagged patients' mean risk from 0.85 to
 0.70 for 0.035 of held-out AUROC, and did not lower worst-case leakage — it complements
 differential privacy rather than replacing it.
+
+## The analysis behind it
+
+`paper/` carries the minimum needed to see what the screen approximates: the study's
+training arms (`training_arms.csv`, Supplementary Table 3) and a small per-patient
+membership audit — shadow models on patient-level halves, per-record attack AUC, per-patient
+risk — that runs on the synthetic example in minutes. It contains no patient data and does
+not reproduce the published numbers; `paper/README.md` says what it leaves out and cites the
+attack it is based on.
 
 ## Citing this
 

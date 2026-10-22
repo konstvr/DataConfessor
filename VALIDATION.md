@@ -41,7 +41,14 @@ PTB-XL: 21,799 twelve-lead electrocardiograms from 18,869 patients, read straigh
 WFDB files through `examples/loaders/ptbxl_loader.py` — a different modality, a different
 record format, labels built by rule rather than read from a column, and none of the study's
 planted control records. The flags were then scored against the **study's own top-5% tail**
-for that dataset's reference arm, the same endpoint the paper reports.
+for that dataset's reference arm.
+
+Both columns below are scored against the same tail, computed the same way — with the
+planted control records left in, which is the definition the study's figure data used when
+this comparison was run. The paper's headline range (73–100%) excludes those records from
+the tail and is therefore a different, higher endpoint: on PTB-XL it is 72.7% against the
+64.7% below. What this table measures is reimplementation against reference, and on that
+question the two agree to 0.6 points.
 
 | | study's screen | this package |
 |---|---|---|
@@ -128,7 +135,8 @@ visible error. The protocol now lives next to the executor that enforces it.
 ```bash
 pytest                                              # 3 and the unit checks
 python examples/make_synthetic.py --out ./synth     # 2, by hand
-# 1 needs the ISIC-2020 archive; see examples/isic2020.md
+# 1 needs the ISIC-2020 archive: `dataconfessor init <thumbnails>
+#   --labels-csv ISIC_2020_Training_GroundTruth_v2.csv` builds the manifest
 # 2 needs PTB-XL;      see examples/ptbxl_manifest.py
 # 4 needs an Ollama API key: python examples/run_with_ollama.py --data ./synth
 ```

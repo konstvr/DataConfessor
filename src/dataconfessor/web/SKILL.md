@@ -142,8 +142,8 @@ Give the user:
 - the path of `screen_report.html` (figures, no identifiers) and of the patient CSV
   (sensitive, which you have not opened);
 - these two caveats, in your own words: it is not a leakage measurement, and an unflagged
-  patient is not certified safe — at this flag rate the source study recovered 65–96% of
-  the tail a full audit found, so part of it is always missed;
+  patient is not certified safe — at this flag rate the source study recovered 73–100% of
+  the tail a full audit found, so part of it can be missed;
 - what the flags are for: allocating a privacy budget, targeting consent review, targeting
   an audit, targeting a training-time defence.
 
