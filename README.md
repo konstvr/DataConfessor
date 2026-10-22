@@ -9,15 +9,11 @@
 A model trained on medical records can reveal who was in its training set. Measuring that
 usually means training hundreds of shadow models and attacking your own model, after the
 fact. DataConfessor works the other way round: *which* patients are at risk is a property of
-the data, so it can be screened during pre-processing. It trains four small models for one
-epoch each on complementary halves of your patients, scores every record with the models
-that never saw it, and flags the 20% least predictable — the patients a model can only fit
-by memorising.
+the data, so privacy risk can be screened during pre-processing
 
-In the study behind the tool (more than 7,000 models, six clinical datasets, four
-modalities) that flag rate contained 65–96% of the patients a full membership-inference
-audit placed in the top-5% risk tail, for 1.4–7.4 GPU-minutes. It is a ranking, not a
-leakage measurement, and an unflagged patient is not certified safe.
+In the study behind the tool (more than 7,700 models, six clinical datasets, four
+modalities), DataConfessor identified 65–96% of the patients that a full membership-inference
+audit placed in the top-5% risk tail, in few GPU-minutes. It is a ranking and an unflagged patient is not certified safe.
 
 ## Install
 
