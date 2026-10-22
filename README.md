@@ -69,10 +69,6 @@ screened 2,056 patients / 33,126 records
   halves. Necessary for the flags to mean anything -- it does NOT predict recall.
 ```
 
-<sup>ISIC-2020 on one Quadro RTX 5000. All 411 flagged patients were melanoma patients,
-holding 561 of the 584 melanoma images in the archive — which is why the flags are not a
-deletion list.</sup>
-
 ## Or run it in a browser
 
 ```bash
