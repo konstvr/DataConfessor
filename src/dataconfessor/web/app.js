@@ -377,6 +377,10 @@ function quote(value) {
 async function guard(button, work) {
   button.disabled = true;
   try {
+    await ready;
+    if (!state.workdir) {
+      throw new Error("the page could not reach the tool; reload it before running anything");
+    }
     await work();
   } catch (err) {
     logLine(`ERROR: ${err.message}`, true);
@@ -537,6 +541,7 @@ $("halt").onclick = () => {
 };
 
 async function converse() {
+  await ready;
   const config = providerConfig();
   if (config.provider !== "ollama" && !config.key) {
     $("provider-box").open = true;
@@ -626,7 +631,10 @@ for (const id of ["open-help", "open-help-2"]) {
 
 let SEP = "\\";
 
-(async function boot() {
+/** Resolved once the page knows its environment. Every action waits for it: `/api/env`
+ *  imports torch to report the device, which on a cold or busy machine takes seconds, and a
+ *  run started before it returns would write its outputs to the root of the drive. */
+const ready = (async function boot() {
   try {
     const env = await api("/api/env");
     state.workdir = env.workdir;
