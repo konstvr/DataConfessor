@@ -147,14 +147,16 @@ label instead of its own. In the study this lowered flagged patients' mean risk 
 0.70 for 0.035 of held-out AUROC, and did not lower worst-case leakage — it complements
 differential privacy rather than replacing it.
 
-## The paper's analysis
+## Replicating the paper's analysis
 
-`paper/` holds code and specifications relating to the study's analysis — at present the
-training arms behind every audited model (`training_arms.csv`). The attack the study
-measures with is the likelihood-ratio attack of Carlini et al., *Membership inference
-attacks from first principles* (IEEE Symposium on Security and Privacy, 1897–1914, 2022);
-the authors' implementation is at
+The screen approximates a full membership-inference audit: shadow models trained on
+patient-level halves of the cohort, attacked with the likelihood-ratio method of Carlini et
+al., *Membership inference attacks from first principles* (IEEE Symposium on Security and
+Privacy, 1897–1914, 2022), whose authors' implementation is at
 <https://github.com/tensorflow/privacy/tree/master/research/mi_lira_2021>.
+
+`training_arms.csv` gives the specification of every audited model: dataset, arm,
+architecture, initialization, optimizer and schedule.
 
 ## Citing this
 
