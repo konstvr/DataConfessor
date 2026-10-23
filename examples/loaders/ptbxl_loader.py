@@ -1,15 +1,4 @@
-"""Read one PTB-XL record straight from its WFDB files.
-
-The manifest points at the `.dat` of each record; WFDB wants the path without a suffix and
-returns `(samples, leads)`, so this flips it to the `(channels, time)` the screen expects.
-Nothing else is needed: the per-record standardisation the tool applies to signals handles
-the amplitude scale.
-
-    dataconfessor screen manifest.csv --loader examples/loaders/ptbxl_loader.py:load \
-        --kind signal
-
-Needs `pip install wfdb`.
-"""
+"""Read one PTB-XL record from its WFDB files as (channels, time). Needs `pip install wfdb`."""
 
 from __future__ import annotations
 

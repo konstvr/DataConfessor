@@ -1,19 +1,4 @@
-"""A synthetic cohort with a known atypical tail, for trying the tool and for the tests.
-
-Each patient gets a *legibility*: how strongly their class is written into their images. A
-legible patient carries an obvious bright blob whose position says which class they are, and
-any model learns them in an epoch. An illegible one carries a blob barely above the noise,
-or in the wrong place entirely, so nothing in the rest of the cohort predicts their label
-and a model can only fit them by memorising. Legibility is continuous, as atypicality is in
-real data, and the least legible patients are the tail the screen should rank at the top.
-
-    python examples/make_synthetic.py --out ./synth
-    dataconfessor screen ./synth/manifest.csv --patients ./synth/flagged.csv \
-        --report ./synth/report.html
-
-The planted tail is written to `atypical_truth.txt`, so recall can be measured -- which is
-exactly what a real dataset cannot give you without a full audit.
-"""
+"""A synthetic cohort with a known atypical tail, for trying the tool and for the tests."""
 
 from __future__ import annotations
 

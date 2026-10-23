@@ -1,15 +1,4 @@
-"""Proxy architectures.
-
-The proxy does not have to resemble the model you are going to train. In the source study a
-SmallCNN with ~25k parameters predicted a ResNet-50's vulnerable tail at 81% of the effect
-the ResNet-50 measured on itself, across a ~1000x parameter gap, and matching the production
-architecture did not help on any of three targets. So this module holds three cheap models
-and the rule for picking one, not a model zoo.
-
-    image, >64 px   resnet18, ImageNet-initialised    the default
-    image, <=64 px  smallcnn                          ImageNet stems destroy small inputs
-    signal          resnet1d18                        1-D ResNet, kernel 15 (~one QRS at 100 Hz)
-"""
+"""Proxy architectures: resnet18, smallcnn below 64 px, resnet1d18 for signals."""
 
 from __future__ import annotations
 

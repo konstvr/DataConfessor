@@ -1,13 +1,4 @@
-"""DataConfessor: find the patients a model will memorise, before you train it.
-
-    from dataconfessor import load_manifest, screen
-    man = load_manifest("manifest.csv")
-    result = screen(man)
-    result.safe_summary()        # aggregate only -- safe to log or hand to an AI assistant
-    result.write_patients(...)   # the flagged cohort -- sensitive, keep local
-
-Method: Vrettos et al., "Predicting and mitigating privacy risks in medical AI".
-"""
+"""DataConfessor: find the patients a model will memorise, before you train it."""
 
 __version__ = "0.1.0"
 

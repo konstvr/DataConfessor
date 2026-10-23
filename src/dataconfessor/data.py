@@ -1,14 +1,4 @@
-"""Turning a manifest into batches, once.
-
-The screen makes eight passes over the data (four proxy models, each trained then used to
-score every record), so decoding JPEGs eight times would dominate a run that is supposed to
-finish in minutes. Every record is therefore decoded once into a memory-mapped array on
-disk, and every pass after that is a slice. The cache is keyed by the manifest contents and
-the preprocessing, so changing either rebuilds it and nothing silently reuses the wrong one.
-
-Records are read here and nowhere else. Nothing in this module returns record contents to a
-caller outside the training loop.
-"""
+"""Decode every record once into a memory-mapped cache, then serve batches from it."""
 
 from __future__ import annotations
 

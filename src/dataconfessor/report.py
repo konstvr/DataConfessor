@@ -1,15 +1,4 @@
-"""The human-readable half of a run: three diagnostic panels in one HTML file.
-
-The panels are chosen to make the two failure modes of this tool visible rather than to
-decorate it:
-
-* the ranking can be *flat*, in which case flagging the top 20% cuts an arbitrary line
-  through a continuum -- panel a shows the shape of the ranking and where the cut falls;
-* the ranking can be *noise*, in which case two independent halves of the proxy models
-  disagree -- panel c is that disagreement, plotted, with the 0.70 floor named.
-
-No patient identifier appears in this file. It is safe to attach to a ticket.
-"""
+"""The HTML report: three diagnostic panels, no patient identifiers."""
 
 from __future__ import annotations
 

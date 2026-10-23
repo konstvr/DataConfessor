@@ -1,17 +1,4 @@
-"""Build a DataConfessor manifest for PTB-XL.
-
-PTB-XL is the one dataset in the source study whose labels need a rule rather than a column:
-the diagnostic superclass of a record is the set of SCP codes it carries, intersected with
-the codes `scp_statements.csv` marks as diagnostic, and mapped to their five classes. A
-record with no diagnostic code is labelled NORM, which is what the study did.
-
-    python examples/ptbxl_manifest.py --root /data/ptbxl --out ptbxl_manifest.csv
-    dataconfessor screen ptbxl_manifest.csv --kind signal \
-        --loader examples/loaders/ptbxl_loader.py:load
-
-The labels are multi-label, so they are written `;`-separated, which is what the manifest
-format expects.
-"""
+"""Build a manifest for PTB-XL, whose labels need a rule rather than a column."""
 
 from __future__ import annotations
 

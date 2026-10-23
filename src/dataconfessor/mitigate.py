@@ -1,16 +1,4 @@
-"""What to do about the flagged patients.
-
-Two halves. `advise()` ranks the interventions the source study measured, filtered by the
-training recipe the user describes. `teachers()` runs the one intervention that needs
-computation rather than a config change: self-distillation, where each flagged record is
-trained on the prediction of a teacher that never saw that patient instead of on its label.
-
-The first recommendation is the one people reach for and it is a mistake: deleting the
-flagged patients. Removing the most exposed layer of a dataset exposes the next one (the
-privacy onion), and in the source study's dermoscopy cohort the flagged patients were almost
-exactly the melanoma patients -- 407 of 411 flagged, holding 561 of 579 melanoma images. You
-would delete the disease.
-"""
+"""What to do about the flagged patients: ranked mitigations, and self-distillation teachers."""
 
 from __future__ import annotations
 

@@ -1,21 +1,4 @@
-"""Command line interface.
-
-Five commands, in the order a run uses them:
-
-    dataconfessor init      build a manifest.csv from a folder of files (+ a labels CSV)
-    dataconfessor check     validate the manifest and describe the cohort -- free, instant
-    dataconfessor screen    train the proxies, rank patients, write the flags and the report
-    dataconfessor teachers  soft labels for the flagged records (self-distillation)
-    dataconfessor advise    the measured mitigations, ranked for your recipe
-
-Everything printed to stdout is aggregate: counts, statistics, verdicts and file paths. The
-one output that identifies individuals -- the per-patient CSV -- is written to disk and
-never printed, because the usual operator of this tool is an AI assistant whose context is
-not the right place for a list of patients ranked by privacy risk.
-
-Each command ends with a NEXT line naming the command to run next, so an assistant driving
-the tool does not have to infer the workflow.
-"""
+"""Command line interface: init, check, screen, teachers, advise."""
 
 from __future__ import annotations
 

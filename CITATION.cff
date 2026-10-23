@@ -15,6 +15,11 @@ authors:
 preferred-citation:
   type: article
   title: "Predicting and mitigating privacy risks in medical AI"
+  year: 2026
+  url: "https://arxiv.org/abs/2610.30229"
+  identifiers:
+    - type: other
+      value: "arXiv:2610.30229"
   authors:
     - family-names: Vrettos
       given-names: Konstantinos

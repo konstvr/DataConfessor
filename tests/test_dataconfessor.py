@@ -1,9 +1,4 @@
-"""One runnable check per piece of logic that could break silently.
-
-The end-to-end test is the important one: it plants a known atypical tail in a synthetic
-cohort and asserts the screen recovers it. Everything the tool claims rests on that, and on
-the aggregate/sensitive split that keeps the flagged cohort out of an assistant's context.
-"""
+"""One runnable check per piece of logic that could break silently."""
 
 from __future__ import annotations
 

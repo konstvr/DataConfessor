@@ -1,17 +1,4 @@
-"""Drive the tool with a small open-weight model, to check the skill is simple enough.
-
-The claim this script tests is that `SKILL.md` can be followed by an ordinary open model
-with no fine-tuning and no agent framework: hand it the skill as a system prompt, let it
-emit one shell command at a time, feed back what the command printed, and see whether it
-screens a dataset correctly and reads the self-consistency gate right.
-
-    set OLLAMA_API_KEY=...
-    python examples/run_with_ollama.py --data ./synth --model gemma4:31b
-
-It also reports **discipline violations**: attempts to open the flagged-cohort CSV or the
-record files, which the skill forbids. Those are refused here rather than executed, so a
-model that ignores the rule fails visibly instead of quietly reading a list of patients.
-"""
+"""Drive the tool with a small open-weight model, to check the skill is simple enough."""
 
 from __future__ import annotations
 

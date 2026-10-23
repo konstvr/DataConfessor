@@ -1,33 +1,4 @@
-"""`dataconfessor ui` — the tool in a browser, served from this machine only.
-
-A privacy tool that phones home would be an odd thing, so this one does not. The server
-binds 127.0.0.1, serves three static files, holds no state on disk beyond the run directory
-the user can see, and makes no outbound request except the one the user asks for: a chat
-turn to the model provider whose key they typed. The page loads no fonts, scripts or
-styles from the network.
-
-What the browser is allowed to ask for:
-
-    GET  /                     the page (carries a per-process token)
-    GET  /api/env              version, device, workdir -- what the header shows
-    POST /api/browse           directory listing, for the folder picker
-    POST /api/headers          the COLUMN NAMES of a CSV (never its rows)
-    POST /api/exec             start an allow-listed command, returns a job id
-    GET  /api/stream?job=      server-sent events: one per output line, then the exit
-    POST /api/stop             cancel a running job
-    POST /api/chat             one assistant turn, proxied to the user's provider
-    POST /api/reveal           open the run directory in the system file manager
-    GET  /api/file?path=       serve a generated .html/.json report from the run directory
-
-Two rules are enforced here rather than asked for politely, because the page is driven by
-an assistant and assistants are suggestible:
-
-* `/api/exec` runs an allow list (`dataconfessor ...` and a few read-only shell commands),
-  parsed with `shlex` and executed without a shell, so no `;`, `|` or `$(...)` can ride in;
-* `/api/file` serves only `.html` and `.json` from the run directory, so the per-patient
-  CSV -- the one output that ranks individuals by risk -- cannot be fetched into the page
-  or into an assistant's context. It can be revealed in the file manager and nothing else.
-"""
+"""`dataconfessor ui` — the tool in a browser, served from 127.0.0.1 only."""
 
 from __future__ import annotations
 

@@ -1,23 +1,4 @@
-"""What a run cost, in joules.
-
-Energy is reported because a screen exists to be the cheap alternative to a shadow-model
-audit, and "cheap" is a claim that should carry a number. The boundary is the same one the
-source study used, so the figures are comparable with it:
-
-* **GPU board energy only**, read from the NVIDIA driver's own cumulative counter (NVML),
-  including the board's idle draw while the job runs.
-* CPU, memory, storage and cooling are **outside** the boundary, and power usage
-  effectiveness is taken as 1.0 -- appropriate for a directly metered single GPU, and an
-  understatement for a data centre.
-* A CPU-only run is **not metered at all**. There is no portable counter for it: RAPL needs
-  privileges and exists only on some platforms. The tool says "not metered" rather than
-  inventing an estimate from runtime and nameplate power, which is the estimate the study
-  found to be wrong.
-
-Carbon is deliberately not computed here. It depends on the grid the machine is plugged
-into, which this process cannot know; `report.py` quotes a figure only when the operator
-supplies the intensity.
-"""
+"""GPU board energy for a run, from the NVIDIA driver's counter; a CPU run is not metered."""
 
 from __future__ import annotations
 

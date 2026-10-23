@@ -1,25 +1,4 @@
-"""The screen: rank patients by atypicality before a production model exists.
-
-A membership-inference audit tells you who leaked *after* you trained the model, and costs a
-population of shadow models. The screen inverts that. Vulnerability tracks **atypicality** --
-how poorly a record is predicted by models that never trained on it -- and atypicality is a
-property of the data, not of the model you are about to train. So a handful of throwaway
-proxy models can rank patients before the production run starts.
-
-Three measurements in the source study had to hold before this was worth building:
-
-* **Independence.** Atypicality computed on one population predicts a *different*
-  population's tail with the effect changing by <3%, so it is not an artefact of the
-  predictor and the risk sharing a score matrix.
-* **Cheapness.** Four models recover 95-97% of the effect a 128-model population measures,
-  and one epoch recovers 89-98% -- at or near peak utility on these datasets, so the proxies
-  are not crippled.
-* **Architecture transfer.** A ~25k-parameter SmallCNN predicted a ResNet-50's tail at 81%
-  of the ResNet-50's own effect. The proxy need not resemble the production model.
-
-What it does NOT do: measure leakage. It produces a ranking and a flagged cohort. A patient
-who is not flagged is not certified safe.
-"""
+"""The screen: rank patients by atypicality before a production model exists."""
 
 from __future__ import annotations
 

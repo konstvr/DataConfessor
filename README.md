@@ -161,6 +161,7 @@ architecture, initialization, optimizer and schedule.
 ## Citing this
 
 > Vrettos, K., Tzanis, E., Kondylakis, H., Vassalou, E. E., Doo, F. X. & Klontzas, M. E.
-> *Predicting and mitigating privacy risks in medical AI.*
+> *Predicting and mitigating privacy risks in medical AI.* arXiv:2610.30229 (2026).
+> <https://arxiv.org/abs/2610.30229>
 
 See `CITATION.cff`. Licensed under Apache-2.0 (`LICENSE`, `NOTICE`).

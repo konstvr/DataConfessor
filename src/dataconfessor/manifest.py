@@ -1,18 +1,4 @@
-"""The dataset contract: one CSV with three columns.
-
-    path,label,patient_id
-    images/ISIC_0015719.jpg,0,IP_3075186
-
-`path` is relative to the manifest file (or absolute). `label` is a class index, a class
-name, or a `;`-separated set of positive classes for multi-label tasks. `patient_id` groups
-records: every record of one person must carry the same value.
-
-That last rule is the one nothing downstream can check. A dataset once grouped 191,000
-images under two "patients" (it keyed on sex) and every per-patient number that came out of
-it was meaningless while looking perfectly plausible. `audit()` below reports the grouping
-statistics loudly for exactly this reason -- it cannot verify the key, only make a wrong one
-visible.
-"""
+"""The dataset contract: one CSV with path, label and patient_id."""
 
 from __future__ import annotations
 
