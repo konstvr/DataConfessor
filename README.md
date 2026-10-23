@@ -26,7 +26,7 @@ usually means training hundreds of shadow models and attacking your own model, a
 fact. DataConfessor works the other way round: *which* patients are at risk is a property of
 the data, so privacy risk can be screened during pre-processing.
 
-In the study behind the tool (more than 7,700 models, six clinical datasets, four
+In the study behind the tool (7,789 models, six clinical datasets, four
 modalities), DataConfessor identified 73–100% of the patients that a full membership-inference
 audit placed in the top-5% risk tail — 3.6–5x random flagging — in few GPU-minutes. It is
 a ranking and an unflagged patient is not certified safe.
