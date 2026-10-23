@@ -67,7 +67,7 @@ def test_screen_recovers_a_planted_atypical_tail(cohort):
     flagged = set(result.flagged_names())
     truth = set(info["atypical"])
     recall = len(flagged & truth) / len(truth)
-    assert recall > 0.5, f"recall {recall:.2f} barely beats random flagging (0.20)"
+    assert recall > 0.5, "the planted tail was not recovered"
 
 
 def test_under_trained_proxies_fail_the_self_consistency_gate(cohort):
@@ -96,7 +96,7 @@ def test_failsafe_rescues_the_synthetic_cohort(cohort):
     assert result.passed, "the ladder should reach a passing budget on this cohort"
     assert result.verdict == "passed_after_retry" and result.epochs > 1
     recall = len(set(result.flagged_names()) & set(info["atypical"])) / len(info["atypical"])
-    assert recall > 0.5, f"recall {recall:.2f} barely beats random flagging (0.20)"
+    assert recall > 0.5, "the planted tail was not recovered"
 
 
 def test_safe_summary_contains_no_patient_level_data(cohort):

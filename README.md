@@ -52,8 +52,7 @@ Other ways in:
 The pip package carries its own copy of the skill, so the browser interface can hand it to a
 model with no checkout present. The skill covers how to map a dataset onto the manifest, how
 to read the verdict, what to do when the check fails, and that the flagged-patient list and
-the records themselves are not to be opened. An open 31B model followed it end to end; see
-`VALIDATION.md`.
+the records themselves are not to be opened.
 
 ## Or run it yourself
 
@@ -161,7 +160,7 @@ architecture, initialization, optimizer and schedule.
 ## Citing this
 
 > Vrettos, K., Tzanis, E., Kondylakis, H., Vassalou, E. E., Doo, F. X. & Klontzas, M. E.
-> *Predicting and mitigating privacy risks in medical AI.* arXiv:2610.30229 (2026).
+> *Automated screening of privacy risks in medical AI.* arXiv:2610.30229 (2026).
 > <https://arxiv.org/abs/2610.30229>
 
 See `CITATION.cff`. Licensed under Apache-2.0 (`LICENSE`, `NOTICE`).

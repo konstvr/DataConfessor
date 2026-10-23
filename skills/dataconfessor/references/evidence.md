@@ -1,7 +1,7 @@
 # Where each number comes from
 
 Every figure the tool prints is a measurement from the source study — Vrettos et al.,
-*Predicting and mitigating privacy risks in medical AI* — on its datasets, not a prediction
+*Automated screening of privacy risks in medical AI* — on its datasets, not a prediction
 for yours. This file says what was measured so that nothing is quoted beyond its warrant.
 
 ## The study
