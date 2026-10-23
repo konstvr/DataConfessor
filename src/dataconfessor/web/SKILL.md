@@ -83,6 +83,13 @@ later and silently invalidates everything.
 
 ## Step 5 — screen
 
+**Say what it will cost before you run anything.** One short line: the record count from
+step 4, that the first run decodes every record into a cache of roughly
+`records x size x size x channels` bytes, and that the screen takes minutes on a GPU, up to
+an hour on a CPU, and up to four times that again if the self-consistency fail-safe has to
+retrain the proxies at 2 and then 5 epochs. Say it even when the run looks small — spending
+the user's machine is their decision, not yours.
+
 ```bash
 dataconfessor screen manifest.csv \
     --patients flagged_patients.csv \
@@ -90,14 +97,8 @@ dataconfessor screen manifest.csv \
     --report screen_report.html
 ```
 
-Add `--device cuda` if the machine has a GPU and the tool did not pick it up.
-
-Before you launch it, tell the user what it will cost: the record count from step 4, that
-the first run decodes every record into a cache of roughly `records x size x size x channels`
-bytes, and that the screen itself takes minutes on a GPU and up to an hour on a CPU — and up
-to about four times that if the self-consistency fail-safe has to retrain the proxies at 2
-and then 5 epochs. Then run it and wait. Do not run it in the background and report before
-it has finished.
+Add `--device cuda` if the machine has a GPU and the tool did not pick it up. Run it in the
+foreground and wait; do not run it in the background and report before it has finished.
 
 ## Step 6 — the self-consistency gate
 
