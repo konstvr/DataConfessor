@@ -148,12 +148,10 @@ its GPU energy (NVML, board only, PUE 1.0) in all three.
 
 `dataconfessor advise` lists what the study measured: weight decay 1e-2 cut the exposed
 cohort 1.38–2.95x at no cost; partial fine-tuning of a foundation model cut exposure from
-55% to 22–30% and used 60% less energy; mixup and smaller training sets made it worse.
+55% to 22–30% and used 60% less energy.
 
 `dataconfessor teachers` trains two teachers on complementary patient halves and writes the
-prediction of the teacher that never saw each flagged record, to train that record on a soft
-label instead of its own. In the study this lowered flagged patients' mean risk from 0.85 to
-0.70 for 0.035 of held-out AUROC, and did not lower worst-case leakage. It complements
+prediction of the teacher that never saw the actual record (Distillation training). In the study this lowered flagged patients' mean risk, without noticeable effects on accuracy. It complements
 differential privacy rather than replacing it.
 
 ## Replicating the paper's analysis
