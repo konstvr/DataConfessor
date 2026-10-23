@@ -58,23 +58,10 @@ that the flagged-patient list and the records themselves are not to be opened. T
 package carries its own copy of it, so the app can hand it to a model with no checkout
 present.
 
-## Install
-
-The app and the command line need the package; the assistant route above installs it for
-you.
+## Use the app
 
 ```bash
 pip install git+https://github.com/konstvr/DataConfessor.git
-dataconfessor --version
-```
-
-Python 3.10 or newer. From a clone, `pip install .` does the same. PyTorch and the usual
-scientific stack are pulled in by pip; a GPU makes a screen minutes rather than an hour, but
-is not required.
-
-## Or use the app
-
-```bash
 dataconfessor ui
 ```
 
@@ -85,13 +72,19 @@ report as the run goes. It is served from your own machine: the server binds `12
 runs only this tool's commands, and the flagged-cohort CSV is written to disk rather than
 served to the page.
 
+Python 3.10 or newer. From a clone, `pip install .` does the same. PyTorch and the usual
+scientific stack are pulled in by pip; a GPU makes a screen minutes rather than an hour, but
+is not required.
+
 The chat supports Anthropic, any OpenAI-compatible endpoint, and Ollama. A local Ollama
 (Base URL `http://localhost:11434`) needs no API key and keeps the conversation on the
 machine; hosted providers, Ollama Cloud included, need a key and receive what the assistant
 sends them: dataset paths, the commands it runs and their aggregate output. Records and the
 flagged-patient list are never part of that.
 
-## Or use the command line
+## Use the command line
+
+The same package, without the app:
 
 ```bash
 dataconfessor init  /data/images --labels-csv /data/labels.csv --out manifest.csv
