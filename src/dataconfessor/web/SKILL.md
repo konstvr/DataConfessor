@@ -61,10 +61,15 @@ a patient with several records will not be scored as one person.
 dataconfessor init <data_dir> --labels-csv <labels.csv> --out manifest.csv
 ```
 
-It guesses the columns and prints which it used. If a guess is wrong, re-run with
-`--image-col <col> --label-col <col> --patient-col <col>`. With no labels CSV it uses each
-file's parent folder as the label. For formats it cannot read (DICOM, NIfTI, WFDB) see
-`references/manifest.md`.
+`<data_dir>` is the folder holding the record files; it is searched recursively, so the
+folder above the images works too and anything that is not a record is ignored. It guesses
+the columns and prints which it used — if a guess is wrong, re-run with
+`--image-col <col> --label-col <col> --patient-col <col>`.
+
+Without `--labels-csv` the label is each file's parent folder name, so the files must be
+arranged `<data_dir>/<class>/...`; files sitting directly in `<data_dir>` with no labels CSV
+are an error, because there is nothing to use as a label. For formats the tool cannot read
+(DICOM, NIfTI, WFDB) see `references/manifest.md`.
 
 ## Step 4 — check the cohort
 

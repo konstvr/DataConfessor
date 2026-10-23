@@ -265,18 +265,25 @@ def test_one_attempt_when_the_first_check_passes(cohort, fake_proxies):
     assert result.verdict == "passed" and result.epochs == 1
 
 
-def test_loader_spec_accepts_a_windows_path():
-    """`D:/data/loader.py:load` must split on the last colon, not the drive letter."""
+def test_loader_spec_accepts_a_windows_path(tmp_path):
+    """`D:/data/loader.py:load` must split on the last colon, not the drive letter.
+
+    The loader under test is written here rather than taken from `examples/`, so this
+    exercises the spec parsing and nothing else. The earlier version imported the PTB-XL
+    loader, which pulls in wfdb: that made a string-parsing test depend on a third-party
+    import running cleanly at the end of a long session, and it failed in full runs while
+    passing alone.
+    """
     from importlib import import_module
 
     data = import_module("dataconfessor.data")
-    root = Path(__file__).resolve().parents[1]
-    spec = f"{root.as_posix()}/examples/loaders/ptbxl_loader.py:load"
-    try:
-        assert callable(data._load_hook(spec))
-    except ImportError as exc:  # wfdb absent is fine; a mangled path is not
-        assert "wfdb" in str(exc), exc
+    loader = tmp_path / "my_loader.py"
+    loader.write_text("def load(path):\n    return path\n", encoding="utf-8")
 
-    for bad in ("loader.py", "loader:load", ":load"):
+    hook = data._load_hook(f"{loader}:load")          # native path, drive letter and all
+    assert callable(hook) and hook("x") == "x"
+    assert callable(data._load_hook(f"{loader.as_posix()}:load"))
+
+    for bad in ("loader.py", "loader:load", ":load", str(loader)):
         with pytest.raises(ValueError, match="path/to/file.py:function"):
             data._load_hook(bad)
