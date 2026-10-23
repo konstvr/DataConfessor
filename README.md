@@ -4,7 +4,7 @@
 
 <h1 align="center">DataConfessor</h1>
 
-<p align="center"><b>Pre-training privacy screening for medical datasets.</b></p>
+<p align="center"><b>Find the patients at privacy risk before you train a model on their data.</b></p>
 
 <p align="center">
   <a href="https://arxiv.org/abs/2610.30229"><img alt="arXiv 2610.30229" src="https://img.shields.io/badge/arXiv-2610.30229-B31B1B?logo=arxiv&logoColor=white"></a>
@@ -12,6 +12,7 @@
   <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white">
   <img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black">
+  <a href="https://twin-x.eu/"><img alt="TWIN-X project" src="https://img.shields.io/badge/project-TWIN--X-0E7C7B"></a>
   <a href="#acknowledgements"><img alt="Funded by the European Union" src="https://img.shields.io/badge/funded%20by-EU%20Horizon%20Europe-003399"></a>
 </p>
 
@@ -21,21 +22,20 @@
        width="900">
 </p>
 
-A model trained on patient data can give away who was in its training set: shown a record,
-an attacker can often tell whether that record was used to train the model. The risk is not
-spread evenly across a cohort — a small minority of patients carries most of it, and those
-patients are usually the atypical ones.
+A model trained on patient data can give away who was in its training set. Shown one
+record, an attacker can often tell whether that record was used to train the model. The risk
+is not spread evenly across a cohort: a small minority of patients carries most of it, and
+they are usually the ones whose data looks least like everyone else's.
 
-Identifying them normally means a membership-inference audit: hundreds of models trained and
-attacked, after the model you care about already exists. DataConfessor runs beforehand.
-*Which* patients are at risk turns out to be a property of the dataset rather than of the
-model, so four small throwaway models are enough to rank a cohort by risk during
-pre-processing, in a few GPU-minutes.
+Identifying them normally means a membership inference audit, which trains and attacks
+hundreds of models once the model you care about already exists. DataConfessor runs first.
+Which patients are at risk is a property of the dataset rather than of the model, so four
+small throwaway models can rank a cohort by risk during pre-processing, in a few GPU-minutes.
 
-In the study behind the tool — 7,789 models, six clinical datasets, four modalities — the
-top 20% it flags held 73–100% of the patients a full audit placed in the top-5% risk tail,
-3.6–5x what flagging at random would give. The result is a ranking, not a measurement: an
-unflagged patient is not certified safe.
+In the study behind the tool (7,789 models, six clinical datasets, four modalities) the top
+20% it flags held 73 to 100% of the patients a full audit placed in the top 5% risk tail,
+3.6 to 5 times what flagging at random would give. The result is a ranking, not a
+measurement: an unflagged patient is not certified safe.
 
 ## Install
 
@@ -68,7 +68,7 @@ Other ways in:
 |---|---|
 | any Claude Code project | `cp -r skills/dataconfessor ~/.claude/skills/` |
 | claude.ai or the API | zip `skills/dataconfessor/` and upload it as an Agent Skill |
-| any other agent | point it at `skills/dataconfessor/SKILL.md` — plain Markdown |
+| any other agent | point it at `skills/dataconfessor/SKILL.md`, plain Markdown |
 
 The pip package carries its own copy of the skill, so the browser interface can hand it to a
 model with no checkout present. The skill covers how to map a dataset onto the manifest, how
@@ -104,7 +104,7 @@ served to the page.
 The chat supports Anthropic, any OpenAI-compatible endpoint, and Ollama. A local Ollama
 (Base URL `http://localhost:11434`) needs no API key and keeps the conversation on the
 machine; hosted providers, Ollama Cloud included, need a key and receive what the assistant
-sends them — dataset paths, the commands it runs and their aggregate output. Records and the
+sends them: dataset paths, the commands it runs and their aggregate output. Records and the
 flagged-patient list are never part of that.
 
 ## The input: one CSV
@@ -123,7 +123,7 @@ downstream can check: **every record of one person must carry the same `patient_
 ## The self-consistency check
 
 Split the proxy models into two halves, rank patients from each, correlate. Below **0.70**
-the halves disagree and the ranking is not reproducible — usually because the proxies are
+the halves disagree and the ranking is not reproducible, usually because the proxies are
 under-trained, so the tool retrains them at 2 then 5 epochs (`--max-epochs`) and stops at
 the first budget that clears the floor. Each run ends with a verdict:
 
@@ -161,7 +161,7 @@ cohort 1.38–2.95x at no cost; partial fine-tuning of a foundation model cut ex
 `dataconfessor teachers` trains two teachers on complementary patient halves and writes the
 prediction of the teacher that never saw each flagged record, to train that record on a soft
 label instead of its own. In the study this lowered flagged patients' mean risk from 0.85 to
-0.70 for 0.035 of held-out AUROC, and did not lower worst-case leakage — it complements
+0.70 for 0.035 of held-out AUROC, and did not lower worst-case leakage. It complements
 differential privacy rather than replacing it.
 
 ## Replicating the paper's analysis
@@ -196,7 +196,7 @@ University of Crete.
     <td width="110" align="center"><img src="assets/eu-flag.svg" alt="European Union" width="90"></td>
     <td>
       Funded by the European Union under Horizon Europe grant agreement No 101287679
-      (TWIN-X). Views and opinions expressed are those of the authors only and do not
+      (<a href="https://twin-x.eu/">TWIN-X</a>). Views and opinions expressed are those of the authors only and do not
       necessarily reflect those of the European Union or the European Health and Digital
       Executive Agency (HaDEA). Neither the European Union nor the granting authority can be
       held responsible for them.

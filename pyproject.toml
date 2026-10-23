@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dataconfessor"
 version = "0.1.0"
-description = "Pre-training privacy screening for medical datasets: rank patients by risk of exposure."
+description = "Find the patients at privacy risk before you train a model on their data."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
