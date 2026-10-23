@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dataconfessor"
 version = "0.1.0"
-description = "Flag the patients a model will memorise, before you train it."
+description = "Pre-training privacy screening for medical datasets: rank patients by risk of exposure."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
@@ -29,7 +29,6 @@ dependencies = [
 [project.optional-dependencies]
 energy = ["nvidia-ml-py>=12.0"]
 perf = ["psutil>=5.9"]
-dev = ["pytest>=7.0"]
 
 [project.scripts]
 dataconfessor = "dataconfessor.cli:main"
@@ -43,6 +42,3 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 dataconfessor = ["web/*"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]

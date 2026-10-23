@@ -1,4 +1,4 @@
-"""DataConfessor: find the patients a model will memorise, before you train it."""
+"""DataConfessor: rank patients by privacy risk before a model is trained on their data."""
 
 __version__ = "0.1.0"
 

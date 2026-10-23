@@ -4,7 +4,7 @@
 
 <h1 align="center">DataConfessor</h1>
 
-<p align="center"><b>Find the patients your model will memorise — before you train it.</b></p>
+<p align="center"><b>Pre-training privacy screening for medical datasets.</b></p>
 
 <p align="center">
   <a href="https://arxiv.org/abs/2610.30229"><img alt="arXiv 2610.30229" src="https://img.shields.io/badge/arXiv-2610.30229-B31B1B?logo=arxiv&logoColor=white"></a>
@@ -21,15 +21,21 @@
        width="900">
 </p>
 
-A model trained on medical records can reveal who was in its training set. Measuring that
-usually means training hundreds of shadow models and attacking your own model, after the
-fact. DataConfessor works the other way round: *which* patients are at risk is a property of
-the data, so privacy risk can be screened during pre-processing.
+A model trained on patient data can give away who was in its training set: shown a record,
+an attacker can often tell whether that record was used to train the model. The risk is not
+spread evenly across a cohort — a small minority of patients carries most of it, and those
+patients are usually the atypical ones.
 
-In the study behind the tool (7,789 models, six clinical datasets, four
-modalities), DataConfessor identified 73–100% of the patients that a full membership-inference
-audit placed in the top-5% risk tail — 3.6–5x random flagging — in few GPU-minutes. It is
-a ranking and an unflagged patient is not certified safe.
+Identifying them normally means a membership-inference audit: hundreds of models trained and
+attacked, after the model you care about already exists. DataConfessor runs beforehand.
+*Which* patients are at risk turns out to be a property of the dataset rather than of the
+model, so four small throwaway models are enough to rank a cohort by risk during
+pre-processing, in a few GPU-minutes.
+
+In the study behind the tool — 7,789 models, six clinical datasets, four modalities — the
+top 20% it flags held 73–100% of the patients a full audit placed in the top-5% risk tail,
+3.6–5x what flagging at random would give. The result is a ranking, not a measurement: an
+unflagged patient is not certified safe.
 
 ## Install
 
