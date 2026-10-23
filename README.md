@@ -1,15 +1,30 @@
 <p align="center">
-  <img src="assets/icon.jpg" alt="DataConfessor" width="280">
+  <img src="assets/icon.jpg" alt="" width="180">
 </p>
 
 <h1 align="center">DataConfessor</h1>
 
 <p align="center"><b>Find the patients your model will memorise — before you train it.</b></p>
 
+<p align="center">
+  <a href="https://arxiv.org/abs/2610.30229"><img alt="arXiv 2610.30229" src="https://img.shields.io/badge/arXiv-2610.30229-B31B1B?logo=arxiv&logoColor=white"></a>
+  <a href="LICENSE"><img alt="Apache 2.0 licence" src="https://img.shields.io/badge/licence-Apache%202.0-2E6E9E"></a>
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
+  <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white">
+  <img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black">
+  <a href="#acknowledgements"><img alt="Funded by the European Union" src="https://img.shields.io/badge/funded%20by-EU%20Horizon%20Europe-003399"></a>
+</p>
+
+<p align="center">
+  <img src="assets/screenshot.png"
+       alt="The DataConfessor interface: three steps on the left, the self-consistency verdict, the flagged share and the run log on the right"
+       width="900">
+</p>
+
 A model trained on medical records can reveal who was in its training set. Measuring that
 usually means training hundreds of shadow models and attacking your own model, after the
 fact. DataConfessor works the other way round: *which* patients are at risk is a property of
-the data, so privacy risk can be screened during pre-processing
+the data, so privacy risk can be screened during pre-processing.
 
 In the study behind the tool (more than 7,700 models, six clinical datasets, four
 modalities), DataConfessor identified 73–100% of the patients that a full membership-inference
@@ -74,9 +89,6 @@ screened 2,056 patients / 33,126 records
 ```bash
 dataconfessor ui
 ```
-
-<p align="center"><img src="assets/screenshot.png" alt="The DataConfessor interface: three
-steps on the left, the self-consistency verdict and the flagged share on the right" width="860"></p>
 
 A local page with two ways in: a chat that drives the tool with a model of your choice, or a
 three-step form with a folder picker and no commands to type. The server binds `127.0.0.1`
@@ -164,3 +176,24 @@ architecture, initialization, optimizer and schedule.
 > <https://arxiv.org/abs/2610.30229>
 
 See `CITATION.cff`. Licensed under Apache-2.0 (`LICENSE`, `NOTICE`).
+
+## Support
+
+Bug reports, questions and dataset formats that do not fit the manifest:
+[open an issue](https://github.com/konstvr/DataConfessor/issues). Developed at the ATI lab,
+University of Crete.
+
+## Acknowledgements
+
+<table>
+  <tr>
+    <td width="110" align="center"><img src="assets/eu-flag.svg" alt="European Union" width="90"></td>
+    <td>
+      Funded by the European Union under Horizon Europe grant agreement No 101287679
+      (TWIN-X). Views and opinions expressed are those of the authors only and do not
+      necessarily reflect those of the European Union or the European Health and Digital
+      Executive Agency (HaDEA). Neither the European Union nor the granting authority can be
+      held responsible for them.
+    </td>
+  </tr>
+</table>
