@@ -28,21 +28,11 @@ risk in a few GPU-minutes: across 7,789 models, six clinical datasets and four m
 the patients it flagged held 73 to 100% of those a full membership inference audit
 identified as most at risk.
 
-## Install
-
-```bash
-pip install git+https://github.com/konstvr/DataConfessor.git
-dataconfessor --version
-```
-
-Python 3.10 or newer. From a clone, `pip install .` does the same. PyTorch and the usual
-scientific stack are pulled in by pip; a GPU makes a screen minutes rather than an hour, but
-is not required.
-
 ## Use it with an AI assistant
 
-The repository is also a Claude Code plugin, so an assistant can run the whole screen from a
-sentence, including working out how your dataset maps onto the manifest:
+The repository is a Claude Code plugin, so two lines are all the setup there is. An
+assistant then runs the whole screen from a sentence, including working out how your dataset
+maps onto the manifest:
 
 ```
 /plugin marketplace add konstvr/DataConfessor
@@ -61,12 +51,47 @@ Other ways in:
 | claude.ai or the API | zip `skills/dataconfessor/` and upload it as an Agent Skill |
 | any other agent | point it at `skills/dataconfessor/SKILL.md`, plain Markdown |
 
-The pip package carries its own copy of the skill, so the browser interface can hand it to a
-model with no checkout present. The skill covers how to map a dataset onto the manifest, how
-to read the verdict, what to do when the check fails, and that the flagged-patient list and
-the records themselves are not to be opened.
+Nothing needs installing first: the skill checks for the `dataconfessor` command and
+installs the package itself the first time it needs it. The skill covers how to map a
+dataset onto the manifest, how to read the verdict, what to do when the check fails, and
+that the flagged-patient list and the records themselves are not to be opened. The pip
+package carries its own copy of it, so the app can hand it to a model with no checkout
+present.
 
-## Or run it yourself
+## Install
+
+The app and the command line need the package; the assistant route above installs it for
+you.
+
+```bash
+pip install git+https://github.com/konstvr/DataConfessor.git
+dataconfessor --version
+```
+
+Python 3.10 or newer. From a clone, `pip install .` does the same. PyTorch and the usual
+scientific stack are pulled in by pip; a GPU makes a screen minutes rather than an hour, but
+is not required.
+
+## Or use the app
+
+```bash
+dataconfessor ui
+```
+
+That opens the app in your browser, with two ways to use it: a chat that drives the tool
+with a model of your choice, or a three-step form with a folder picker and no commands to
+type. Either way the app shows the cohort check, the verdict, the flagged share and the
+report as the run goes. It is served from your own machine: the server binds `127.0.0.1` and
+runs only this tool's commands, and the flagged-cohort CSV is written to disk rather than
+served to the page.
+
+The chat supports Anthropic, any OpenAI-compatible endpoint, and Ollama. A local Ollama
+(Base URL `http://localhost:11434`) needs no API key and keeps the conversation on the
+machine; hosted providers, Ollama Cloud included, need a key and receive what the assistant
+sends them: dataset paths, the commands it runs and their aggregate output. Records and the
+flagged-patient list are never part of that.
+
+## Or use the command line
 
 ```bash
 dataconfessor init  /data/images --labels-csv /data/labels.csv --out manifest.csv
@@ -80,23 +105,6 @@ screened 2,056 patients / 33,126 records
   self-consistency 0.808 (floor 0.7): the ranking reproduces across independent proxy
   halves. Necessary for the flags to mean anything -- it does NOT predict recall.
 ```
-
-## Or run it in a browser
-
-```bash
-dataconfessor ui
-```
-
-A local page with two ways in: a chat that drives the tool with a model of your choice, or a
-three-step form with a folder picker and no commands to type. The server binds `127.0.0.1`
-and runs only this tool's commands; the flagged-cohort CSV is written to disk and is not
-served to the page.
-
-The chat supports Anthropic, any OpenAI-compatible endpoint, and Ollama. A local Ollama
-(Base URL `http://localhost:11434`) needs no API key and keeps the conversation on the
-machine; hosted providers, Ollama Cloud included, need a key and receive what the assistant
-sends them: dataset paths, the commands it runs and their aggregate output. Records and the
-flagged-patient list are never part of that.
 
 ## The input: one CSV
 
@@ -136,7 +144,7 @@ code is 0 whenever flags were written; `--strict` returns 3 on `below_floor`.
 | `dataconfessor screen` | rank patients, flag the top 20%, write the report |
 | `dataconfessor teachers` | soft labels for the flagged records (self-distillation) |
 | `dataconfessor advise` | the mitigations measured in the study, ranked for your recipe |
-| `dataconfessor ui` | the browser interface, served from this machine only |
+| `dataconfessor ui` | the app, served from this machine only |
 
 Outputs are separated by sensitivity: `--out` is aggregate-only JSON, safe to log or hand to
 an assistant; `--patients` is the flagged cohort, which identifies individuals by risk and
