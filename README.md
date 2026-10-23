@@ -22,20 +22,11 @@
        width="900">
 </p>
 
-A model trained on patient data can give away who was in its training set. Shown one
-record, an attacker can often tell whether that record was used to train the model. The risk
-is not spread evenly across a cohort: a small minority of patients carries most of it, and
-they are usually the ones whose data looks least like everyone else's.
-
-Identifying them normally means a membership inference audit, which trains and attacks
-hundreds of models once the model you care about already exists. DataConfessor runs first.
-Which patients are at risk is a property of the dataset rather than of the model, so four
-small throwaway models can rank a cohort by risk during pre-processing, in a few GPU-minutes.
-
-In the study behind the tool (7,789 models, six clinical datasets, four modalities) the top
-20% it flags held 73 to 100% of the patients a full audit placed in the top 5% risk tail,
-3.6 to 5 times what flagging at random would give. The result is a ranking, not a
-measurement: an unflagged patient is not certified safe.
+A model trained on patient data can reveal who was in its training set, so privacy risk is
+better screened before training than audited afterwards. DataConfessor ranks a cohort by
+risk in a few GPU-minutes: across 7,789 models, six clinical datasets and four modalities,
+the patients it flagged held 73 to 100% of those a full membership inference audit
+identified as most at risk.
 
 ## Install
 
