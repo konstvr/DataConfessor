@@ -177,20 +177,29 @@ See `CITATION.cff`. Licensed under Apache-2.0 (`LICENSE`, `NOTICE`).
 ## Support
 
 Bug reports, questions and dataset formats that do not fit the manifest:
-[open an issue](https://github.com/konstvr/DataConfessor/issues). Developed at the ATI lab,
-University of Crete.
+[open an issue](https://github.com/konstvr/DataConfessor/issues).
 
 ## Acknowledgements
 
 <table>
   <tr>
-    <td width="110" align="center"><img src="assets/eu-flag.svg" alt="European Union" width="90"></td>
+    <td width="170" align="center">
+      <a href="https://www.atilab.net/"><img src="assets/ati-lab.png" alt="ATI Laboratory" width="150"></a>
+    </td>
+    <td>
+      Developed at the
+      <a href="https://www.atilab.net/">Artificial Intelligence and Translational Imaging (ATI) Laboratory</a>,
+      School of Medicine, University of Crete.
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/eu-flag.svg" alt="European Union" width="100"></td>
     <td>
       Funded by the European Union under Horizon Europe grant agreement No 101287679
-      (<a href="https://twin-x.eu/">TWIN-X</a>). Views and opinions expressed are those of the authors only and do not
-      necessarily reflect those of the European Union or the European Health and Digital
-      Executive Agency (HaDEA). Neither the European Union nor the granting authority can be
-      held responsible for them.
+      (<a href="https://twin-x.eu/">TWIN-X</a>). Views and opinions expressed are those of the
+      authors only and do not necessarily reflect those of the European Union or the European
+      Health and Digital Executive Agency (HaDEA). Neither the European Union nor the granting
+      authority can be held responsible for them.
     </td>
   </tr>
 </table>
